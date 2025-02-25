@@ -110,7 +110,7 @@ describe('Curachain Medical Funding Protocol', () => {
   });
 
   it('Should verify a patient case', async () => {
-    // Corrected parameter format using object syntax
+    
     await program.methods.verifyCase({ approve: true })
       .accounts({
         patientCase: patientCasePda,
@@ -212,7 +212,7 @@ describe('Curachain Medical Funding Protocol', () => {
   });
 
   it('Should check donor compliance', async () => {
-    // Corrected empty parameter syntax
+  
     const isCompliant = await program.methods.checkCompliance({})
       .accounts({
         donor: donor.publicKey
