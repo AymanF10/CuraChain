@@ -13,7 +13,7 @@ pub const COUNTER_SEED: &[u8] = b"counter";
 #[constant]
 pub const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([0; 32]);
 #[constant]
-pub const VERIFICATION_PERIOD: i64 = 172800; // 2 days
+pub const VERIFICATION_PERIOD: i64 = 3; // 2 days
 #[constant]
 pub const MIN_VERIFICATION_PARTICIPATION: f64 = 0.5;
 #[constant]

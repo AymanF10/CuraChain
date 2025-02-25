@@ -34,6 +34,14 @@ describe('Curachain Medical Funding Protocol', () => {
         ...latestBlockhash
       });
     };
+    console.log({
+      admin: admin.publicKey.toString(), 
+      patient: patient.publicKey.toString(),
+      verifier: verifier.publicKey.toString(),
+      donor: donor.publicKey.toString(),
+    //escrowPda: escrowPda.toString(),
+    //patientCasePda: patientCasePda.toString(),
+    });
 
     await Promise.all([
       confirmAirdrop(admin.publicKey),
@@ -41,7 +49,17 @@ describe('Curachain Medical Funding Protocol', () => {
       confirmAirdrop(verifier.publicKey),
       confirmAirdrop(donor.publicKey)
     ]);
-  });
+ 
+  const adminBalance = await provider.connection.getBalance(admin.publicKey);
+  const patientBalance = await provider.connection.getBalance(patient.publicKey);
+  const verifierBalance = await provider.connection.getBalance(verifier.publicKey);
+  const donorBalance = await provider.connection.getBalance(donor.publicKey);
+  console.log("admin balance:", adminBalance);
+  console.log("patient balance:", patientBalance);
+  console.log("verifier balance:", verifierBalance);
+  console.log("donor balance:", donorBalance);
+
+});
 
   it('Should initialize the global case counter', async () => {
     const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -124,8 +142,8 @@ describe('Curachain Medical Funding Protocol', () => {
   });
 
   it('Should finalize verification after timeout', async () => {
-    // Simulate time passing (2 days = 172800 seconds)
-    await new Promise(resolve => setTimeout(resolve, 172800 * 1000));
+    // Simulate time passing (3 secconds. Later will change it to 2 days in the main net)
+    await new Promise(resolve => setTimeout(resolve, 3 * 1000));
 
     // Ensure caseId is passed as BN in an object
     await program.methods.finalizeVerification({ caseId })
