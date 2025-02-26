@@ -40,6 +40,13 @@ declare_id!("GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2");
     pub fn verify_case(ctx: Context<VerifyCase>, vote: bool) -> Result<()> {
         instructions::verify_case::VerifyCase::handler(ctx, vote)
     }
+    
+    pub fn finalize_verification(
+        ctx: Context<FinalizeVerification>,
+        case_id: u64,
+    ) -> Result<()> {
+        instructions::finalize_verification::FinalizeVerification::handler(ctx, case_id)
+    }
 
     pub fn create_escrow(ctx: Context<CreateEscrow>, case_id: u64) -> Result<()> {
         instructions::create_escrow::CreateEscrow::handler(ctx, case_id)

@@ -2,6 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { Program, BN } from '@coral-xyz/anchor';
 import { Curachain } from '../target/types/curachain';
 import { assert, expect } from 'chai';
+import { SystemProgram } from '@solana/web3.js';
 
 describe('Curachain Medical Funding Protocol', () => {
   const provider = anchor.AnchorProvider.env();
@@ -21,6 +22,7 @@ describe('Curachain Medical Funding Protocol', () => {
   let caseCounterPda: anchor.web3.PublicKey;
   let escrowPda: anchor.web3.PublicKey;
   let patientCasePda: anchor.web3.PublicKey;
+  let caseId: BN; 
 
   before(async () => {
     // Airdrop SOL to all test accounts
@@ -82,34 +84,53 @@ const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
 });
 
 
-  it('Should submit a new patient case', async () => {
-    const counter = await program.account.caseCounter.fetch(caseCounterPda);
-    const expectedCaseId = counter.count.toNumber();
+it('Should submit a new patient case', async () => {
+  // Get initial counter state
+  const initialCounter = await program.account.caseCounter.fetch(caseCounterPda);
+  const initialCount = new BN(initialCounter.count.toString());
 
-    [patientCasePda] = anchor.web3.PublicKey.findProgramAddressSync(
+  // Generate PDA for patient case (matches program's seed logic)
+  const [patientCasePda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("patient-case"), patient.publicKey.toBytes()],
       program.programId
-    );
+  );
 
-    const encryptedLink = "ipfs://QmXYZ123encrypteddata";
-    await program.methods.submitPatientCase(encryptedLink)
+  const encryptedLink = "ipfs://QmXYZ123encrypteddata";
+  
+  // Execute instruction
+  await program.methods.submitPatientCase(encryptedLink)
       .accounts({
-        patientCase: patientCasePda,
-        caseCounter: caseCounterPda,
-        patient: patient.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId
+          patientCase: patientCasePda,
+          caseCounter: caseCounterPda,
+          patient: patient.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId
       })
       .signers([patient])
       .rpc();
 
-    const caseAccount = await program.account.patientCase.fetch(patientCasePda);
-    const updatedCounter = await program.account.caseCounter.fetch(caseCounterPda);
+  // Verify results
+  const caseAccount = await program.account.patientCase.fetch(patientCasePda);
+  const updatedCounter = await program.account.caseCounter.fetch(caseCounterPda);
 
-    assert.equal(caseAccount.encryptedLink, encryptedLink);
-    assert.ok('pending' in caseAccount.status);
-    assert.equal(caseAccount.caseId.toNumber(), expectedCaseId);
-    assert.equal(updatedCounter.count.toNumber(), expectedCaseId + 1);
-  });
+  // 1. Check encrypted link
+  assert.equal(caseAccount.encryptedLink, encryptedLink);
+  
+  // 2. Proper status check for Anchor enum
+  assert.deepEqual(caseAccount.status, { pending: {} });
+  
+  // 3. Verify case ID matches initial counter value
+  assert.equal(
+      caseAccount.caseId.toString(),
+      initialCount.toString(),
+      "Case ID should match initial counter value"
+  );
+  // 4. Verify counter incremented using BN operations
+  assert.equal(
+      updatedCounter.count.toString(),
+      initialCount.add(new BN(1)).toString(),
+      "Counter should increment by 1"
+  );
+});
 
   it('Should whitelist a medical verifier', async () => {
     const [verifierPda] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -132,46 +153,88 @@ const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
     assert.equal(registry.verifierType, "Board Certified Doctor");
   });
 
-  /*it('Should verify a patient case', async () => {
+  it('Should verify a patient case', async () => {
+    // 1. Get verifier registry
+    const [verifierRegistryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("verifier"), verifier.publicKey.toBytes()],
+        program.programId
+    );
+
+    // 2. Generate verification PDA (matches program seeds)
+    const [verificationPda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+            Buffer.from("verification"),
+            patientCasePda.toBytes(),
+            verifier.publicKey.toBytes()
+        ],
+        program.programId
+    );
+
+    // 3. Get initial case state
+    const initialCase = await program.account.patientCase.fetch(patientCasePda);
+
+    await program.methods.verifyCase(true)
+        .accounts({
+            patientCase: patientCasePda,
+            verifierRegistry: verifierRegistryPda,
+            verifier: verifier.publicKey,
+            verificationPda: verificationPda,
+            systemProgram: anchor.web3.SystemProgram.programId
+        })
+        .signers([verifier])
+        .rpc();
+
+    // 4. Verify updates
+    const updatedCase = await program.account.patientCase.fetch(patientCasePda);
+    const verificationAccount = await program.account.verificationPda.fetch(verificationPda);
+
+    // Assertions
+    assert.equal(
+        updatedCase.approveVotes.toString(),
+        initialCase.approveVotes.add(new BN(1)).toString(),
+        "Approve votes should increment"
+    );
     
-    await program.methods.verifyCase(true )
-      .accounts({
-        patientCase: patientCasePda,
-        verifier: verifier.publicKey,
-        verifierRegistry: verifierPda,
-      verificationPda: verificationPda,
-      systemProgram:
-      })
-      .signers([verifier])
-      .rpc();
+    assert.isTrue(verificationAccount.vote, "Vote should be recorded as true");
+    assert.equal(
+        verificationAccount.caseId.toString(),
+        updatedCase.caseId.toString(),
+        "Case ID mismatch in verification PDA"
+    );
+});
 
-    const caseAccount = await program.account.patientCase.fetch(patientCasePda);
-    assert.equal(caseAccount.approveVotes.toNumber(), 1);
-  });
-
-  it('Should finalize verification after timeout', async () => {
-    // Simulate time passing (3 secconds. Later will change it to 2 days in the main net)
+it('Should finalize verification after timeout', async () => {
+    // Simulate time passing (3 seconds for testing)
     await new Promise(resolve => setTimeout(resolve, 3 * 1000));
+    
+    // Fetch the actual case ID from the case account
+    const caseAccount = await program.account.patientCase.fetch(patientCasePda);
+    caseId = new BN(caseAccount.caseId.toString());
 
-    // Ensure caseId is passed as BN in an object
-    await program.methods.finalizeVerification({ caseId })
+    await program.methods.finalizeVerification(caseId)
       .accounts({
         patientCase: patientCasePda
       })
       .rpc();
 
-    const caseAccount = await program.account.patientCase.fetch(patientCasePda);
-    assert.equal(caseAccount.status.approved, true);
-  });
+    // Verify case status after finalization
+    const updatedCase = await program.account.patientCase.fetch(patientCasePda);
+    assert.equal(updatedCase.status, { approved: {} }, "Case should be approved");
+});
 
-  it('Should create an escrow for approved case', async () => {
+it('Should create an escrow for approved case', async () => {
+    // Verify case is approved before proceeding
+    const caseAccount = await program.account.patientCase.fetch(patientCasePda);
+    assert.equal(caseAccount.status, { approved: {} }, "Case must be approved to create escrow");
+
+    // Generate escrow PDA using actual case ID
     const [escrow] = anchor.web3.PublicKey.findProgramAddressSync(
-      [new TextEncoder().encode("escrow"), caseId.toArrayLike(Buffer, 'le', 8)],
+      [Buffer.from("escrow"), caseId.toBuffer('le', 8)],
       program.programId
     );
     escrowPda = escrow;
 
-    await program.methods.createEscrow({ caseId })
+    await program.methods.createEscrow(caseId)
       .accounts({
         patientCase: patientCasePda,
         escrow: escrowPda,
@@ -181,10 +244,11 @@ const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
       .signers([trustedEntity])
       .rpc();
 
+    // Verify escrow creation
     const escrowAccount = await program.account.escrowPda.fetch(escrowPda);
-    assert.equal(escrowAccount.amount.toNumber(), 0);
-    assert.equal(escrowAccount.caseId.toNumber(), 1);
-  });
+    assert.equal(escrowAccount.caseId.toString(), caseId.toString(), "Case ID mismatch in escrow");
+    assert.equal(escrowAccount.amount.toNumber(), 0, "Escrow should start with 0 balance");
+});
 
   it('Should process donations to escrow', async () => {
     const donationAmount = new BN(anchor.web3.LAMPORTS_PER_SOL); // 1 SOL
@@ -197,7 +261,7 @@ const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
       program.programId
     );
 
-    await program.methods.donate({ amount: donationAmount })
+    await program.methods.donate(donationAmount)
       .accounts({
         escrow: escrowPda,
         donation: donationPda,
@@ -239,12 +303,14 @@ const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
 
   it('Should check donor compliance', async () => {
   
-    const isCompliant = await program.methods.checkCompliance({})
+    const isCompliant = await program.methods.checkCompliance()
       .accounts({
         donor: donor.publicKey
       })
       .view();
 
     assert.equal(isCompliant, true);
-  });*/
+  });
 });
+
+
