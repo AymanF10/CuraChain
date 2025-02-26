@@ -1,5 +1,9 @@
 use anchor_lang::prelude::*;
-use crate::{constants::*, state::VerifierRegistry, errors::ErrorCode};
+use crate::{
+    constants::*,
+    state::{VerifierRegistry, CaseCounter},
+    errors::ErrorCode
+};
 
 #[derive(Accounts)]
 #[instruction(verifier_pubkey: Pubkey, verifier_type: String)]
@@ -13,8 +17,14 @@ pub struct WhitelistVerifier<'info> {
     )]
     pub verifier_registry: Account<'info, VerifierRegistry>,
     
-    #[account(mut, address = ADMIN_PUBKEY @ ErrorCode::Unauthorized)]
+    #[account(mut, address = case_counter.admin @ ErrorCode::Unauthorized)]
     pub admin: Signer<'info>,
+
+    #[account(
+        seeds = [COUNTER_SEED],
+        bump,
+    )]
+    pub case_counter: Account<'info, CaseCounter>,
     pub system_program: Program<'info, System>,
 }
 impl<'info>WhitelistVerifier<'info> {

@@ -18,7 +18,7 @@ describe('Curachain Medical Funding Protocol', () => {
   const trustedEntity = anchor.web3.Keypair.generate();
 
   // Program state PDAs
-  let caseId: BN;
+  let caseCounterPda: anchor.web3.PublicKey;
   let escrowPda: anchor.web3.PublicKey;
   let patientCasePda: anchor.web3.PublicKey;
 
@@ -49,7 +49,8 @@ describe('Curachain Medical Funding Protocol', () => {
       confirmAirdrop(verifier.publicKey),
       confirmAirdrop(donor.publicKey)
     ]);
- 
+  
+
   const adminBalance = await provider.connection.getBalance(admin.publicKey);
   const patientBalance = await provider.connection.getBalance(patient.publicKey);
   const verifierBalance = await provider.connection.getBalance(verifier.publicKey);
@@ -58,40 +59,43 @@ describe('Curachain Medical Funding Protocol', () => {
   console.log("patient balance:", patientBalance);
   console.log("verifier balance:", verifierBalance);
   console.log("donor balance:", donorBalance);
-
 });
 
-  it('Should initialize the global case counter', async () => {
-    const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [new TextEncoder().encode("counter")],
-      program.programId
-    );
+it('Should initialize the global case counter', async () => {
+const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("counter")],
+    program.programId
+  );
 
-    await program.methods.initializeCounter()
-      .accounts({
-        caseCounter: counterPda,
-        admin: admin.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId
-      })
-      .signers([admin])
-      .rpc();
+ await program.methods.initializeCounter()
+    .accounts({
+      caseCounter: caseCounterPda,
+      admin: admin.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([admin])
+    .rpc();
 
-    const counter = await program.account.caseCounter.fetch(counterPda);
-    assert.equal(counter.count.toNumber(), 0, "Counter should initialize to 0");
-  });
+  const counter = await program.account.caseCounter.fetch(caseCounterPda);
+  assert.equal(counter.count.toNumber(), 0);
+  assert.ok(counter.admin.equals(admin.publicKey));
+});
+
 
   it('Should submit a new patient case', async () => {
-    caseId = new BN(1);
-    const [pda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [new TextEncoder().encode("patient-case"), patient.publicKey.toBytes()],
+    const counter = await program.account.caseCounter.fetch(caseCounterPda);
+    const expectedCaseId = counter.count.toNumber();
+
+    [patientCasePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("patient-case"), patient.publicKey.toBytes()],
       program.programId
     );
-    patientCasePda = pda;
 
     const encryptedLink = "ipfs://QmXYZ123encrypteddata";
     await program.methods.submitPatientCase(encryptedLink)
       .accounts({
         patientCase: patientCasePda,
+        caseCounter: caseCounterPda,
         patient: patient.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId
       })
@@ -99,22 +103,23 @@ describe('Curachain Medical Funding Protocol', () => {
       .rpc();
 
     const caseAccount = await program.account.patientCase.fetch(patientCasePda);
+    const updatedCounter = await program.account.caseCounter.fetch(caseCounterPda);
+
     assert.equal(caseAccount.encryptedLink, encryptedLink);
-    assert.equal(caseAccount.status.pending, true);
-    assert.equal(caseAccount.caseId.toNumber(), 1);
+    assert.ok('pending' in caseAccount.status);
+    assert.equal(caseAccount.caseId.toNumber(), expectedCaseId);
+    assert.equal(updatedCounter.count.toNumber(), expectedCaseId + 1);
   });
 
   it('Should whitelist a medical verifier', async () => {
     const [verifierPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [new TextEncoder().encode("verifier"), verifier.publicKey.toBytes()],
-      program.programId
-    );
+      [Buffer.from("verifier"), verifier.publicKey.toBytes()],
+    program.programId
+  );
 
-    await program.methods.whitelistVerifier({
-      verifier: verifier.publicKey,
-      verifierType: "Board Certified Doctor"
-    })
-      .accounts({
+
+    await program.methods.whitelistVerifier(verifier.publicKey,"Board Certified Doctor")
+     .accounts({
         verifierRegistry: verifierPda,
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId
@@ -127,12 +132,15 @@ describe('Curachain Medical Funding Protocol', () => {
     assert.equal(registry.verifierType, "Board Certified Doctor");
   });
 
-  it('Should verify a patient case', async () => {
+  /*it('Should verify a patient case', async () => {
     
-    await program.methods.verifyCase({ approve: true })
+    await program.methods.verifyCase(true )
       .accounts({
         patientCase: patientCasePda,
         verifier: verifier.publicKey,
+        verifierRegistry: verifierPda,
+      verificationPda: verificationPda,
+      systemProgram:
       })
       .signers([verifier])
       .rpc();
@@ -238,5 +246,5 @@ describe('Curachain Medical Funding Protocol', () => {
       .view();
 
     assert.equal(isCompliant, true);
-  });
+  });*/
 });

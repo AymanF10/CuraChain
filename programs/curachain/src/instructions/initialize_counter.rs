@@ -1,9 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::{
-    constants::{COUNTER_SEED, ADMIN_PUBKEY},
-    state::CaseCounter,
-    errors::ErrorCode
-};
+use crate::{constants::COUNTER_SEED, state::CaseCounter};
 
 #[derive(Accounts)]
 pub struct InitializeCounter<'info> {
@@ -16,14 +12,15 @@ pub struct InitializeCounter<'info> {
     )]
     pub case_counter: Account<'info, CaseCounter>,
     
-    #[account(mut, address = ADMIN_PUBKEY @ ErrorCode::Unauthorized)]
+    #[account(mut)]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
-impl<'info>InitializeCounter<'info> {
-pub fn handler(ctx: Context<InitializeCounter>) -> Result<()> {
-    let counter = &mut ctx.accounts.case_counter;
-    counter.initialize()?;
-    Ok(())
-}
+
+impl<'info> InitializeCounter<'info> {
+    pub fn handler(ctx: Context<InitializeCounter>) -> Result<()> {
+        let counter = &mut ctx.accounts.case_counter;
+        counter.initialize(*ctx.accounts.admin.key)?; 
+        Ok(())
+    }
 }

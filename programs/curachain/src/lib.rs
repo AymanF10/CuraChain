@@ -9,7 +9,10 @@ pub mod state;
 pub mod constants;
 pub mod errors;
 
-declare_id!("CnADoP8LzuEN7X9DNA8BhjR3Gf4KGKPb9GcVdcbKeht4");
+pub use recognize::*; 
+
+
+declare_id!("GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2");
 
 #[program]
     pub mod curachain{
@@ -65,3 +68,7 @@ declare_id!("CnADoP8LzuEN7X9DNA8BhjR3Gf4KGKPb9GcVdcbKeht4");
         instructions::compliance::CheckCompliance::handler(ctx)
     }
 }
+
+
+
+

@@ -5,7 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-curachain = "CnADoP8LzuEN7X9DNA8BhjR3Gf4KGKPb9GcVdcbKeht4"
+curachain = "GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2"
 
 [registry]
 url = "https://api.apr.dev"
