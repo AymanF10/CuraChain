@@ -8,7 +8,7 @@ pub struct CaseCounter {
 }
 
 impl CaseCounter {
-    pub const LEN: usize = 8 + 32;
+    pub const LEN: usize = 8 + 32 + 8;
     
     pub fn initialize(&mut self, admin: Pubkey) -> Result<()> {
         self.count = 0;

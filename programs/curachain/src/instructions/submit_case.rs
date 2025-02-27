@@ -37,8 +37,14 @@ impl<'info> SubmitPatientCase<'info> {
         case.status = CaseStatus::Pending;
 
         counter.count = counter.count.checked_add(1).unwrap();
+        case.total_verifiers = 1;
+        case.total_verifiers = 1;
         Ok(())
     }
 }
 
+
+
+    
+    
 

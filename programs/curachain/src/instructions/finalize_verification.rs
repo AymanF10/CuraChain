@@ -10,10 +10,12 @@ use crate::{
 pub struct FinalizeVerification<'info> {
     #[account(mut)]
     pub patient_case: Account<'info, PatientCase>,
+   
 }
 impl<'info>FinalizeVerification<'info> {
 pub fn handler(ctx: Context<FinalizeVerification>, _case_id: u64) -> Result<()> {
     let case = &mut ctx.accounts.patient_case;
+    
     
     // Time check
     require!(

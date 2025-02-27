@@ -25,6 +25,11 @@ describe('Curachain Medical Funding Protocol', () => {
   let caseId: BN; 
 
   before(async () => {
+
+    [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("counter")],
+      program.programId
+    );
     // Airdrop SOL to all test accounts
     const airdropAmount = anchor.web3.LAMPORTS_PER_SOL * 10;
     
@@ -64,10 +69,6 @@ describe('Curachain Medical Funding Protocol', () => {
 });
 
 it('Should initialize the global case counter', async () => {
-const [caseCounterPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("counter")],
-    program.programId
-  );
 
  await program.methods.initializeCounter()
     .accounts({
@@ -90,7 +91,7 @@ it('Should submit a new patient case', async () => {
   const initialCount = new BN(initialCounter.count.toString());
 
   // Generate PDA for patient case (matches program's seed logic)
-  const [patientCasePda] = anchor.web3.PublicKey.findProgramAddressSync(
+ [patientCasePda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("patient-case"), patient.publicKey.toBytes()],
       program.programId
   );
@@ -110,6 +111,7 @@ it('Should submit a new patient case', async () => {
 
   // Verify results
   const caseAccount = await program.account.patientCase.fetch(patientCasePda);
+  assert.equal(caseAccount.totalVerifiers.toNumber(), 1); 
   const updatedCounter = await program.account.caseCounter.fetch(caseCounterPda);
 
   // 1. Check encrypted link
@@ -142,6 +144,7 @@ it('Should submit a new patient case', async () => {
     await program.methods.whitelistVerifier(verifier.publicKey,"Board Certified Doctor")
      .accounts({
         verifierRegistry: verifierPda,
+        caseCounter: caseCounterPda,
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId
       })
@@ -204,22 +207,18 @@ it('Should submit a new patient case', async () => {
 });
 
 it('Should finalize verification after timeout', async () => {
-    // Simulate time passing (3 seconds for testing)
-    await new Promise(resolve => setTimeout(resolve, 3 * 1000));
-    
-    // Fetch the actual case ID from the case account
-    const caseAccount = await program.account.patientCase.fetch(patientCasePda);
-    caseId = new BN(caseAccount.caseId.toString());
+  // Sleep for verification period + 1 second
+  const verificationPeriod = 3; // Must match program's VERIFICATION_PERIOD
+  await new Promise(resolve => setTimeout(resolve, (verificationPeriod + 1) * 1000));
+  
+  
+  await program.methods.finalizeVerification(caseId)
+    .accounts({ patientCase: patientCasePda })
+    .rpc();
 
-    await program.methods.finalizeVerification(caseId)
-      .accounts({
-        patientCase: patientCasePda
-      })
-      .rpc();
-
-    // Verify case status after finalization
-    const updatedCase = await program.account.patientCase.fetch(patientCasePda);
-    assert.equal(updatedCase.status, { approved: {} }, "Case should be approved");
+  // Verify approval
+  const updatedCase = await program.account.patientCase.fetch(patientCasePda);
+  assert.deepEqual(updatedCase.status, { approved: {} });
 });
 
 it('Should create an escrow for approved case', async () => {
