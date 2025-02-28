@@ -24,9 +24,9 @@ declare_id!("GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2");
 
     pub fn submit_patient_case(
         ctx: Context<SubmitPatientCase>,
-        encrypted_link: String,
+        encrypted_link: String, case_id: u64
     ) -> Result<()> {
-        instructions::submit_case::SubmitPatientCase::handler(ctx, encrypted_link)
+        instructions::submit_case::SubmitPatientCase::handler(ctx, encrypted_link, case_id)
     }
 
     pub fn whitelist_verifier(
@@ -75,7 +75,3 @@ declare_id!("GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2");
         instructions::compliance::CheckCompliance::handler(ctx)
     }
 }
-
-
-
-

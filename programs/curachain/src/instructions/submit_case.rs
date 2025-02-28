@@ -6,7 +6,7 @@ use crate::{
 use crate::state::CaseCounter;
 
 #[derive(Accounts)]
-#[instruction(encrypted_link: String)]
+#[instruction(encrypted_link: String, case_id: u64)]
 pub struct SubmitPatientCase<'info> {
     #[account(
         init,
@@ -26,11 +26,11 @@ pub struct SubmitPatientCase<'info> {
 }
 
 impl<'info> SubmitPatientCase<'info> {
-    pub fn handler(ctx: Context<SubmitPatientCase>, encrypted_link: String) -> Result<()> {
+    pub fn handler(ctx: Context<SubmitPatientCase>, encrypted_link: String, case_id: u64) -> Result<()> {
         let case = &mut ctx.accounts.patient_case;
         let counter = &mut ctx.accounts.case_counter;
         
-        case.case_id = counter.count;
+        case.case_id;
         case.patient = *ctx.accounts.patient.key;
         case.encrypted_link = encrypted_link;
         case.timestamp = Clock::get()?.unix_timestamp;
