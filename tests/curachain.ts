@@ -220,8 +220,8 @@ it('Should submit a new patient case', async () => {
 it('Should finalize verification after timeout', async () => {
   // Sleep for verification period + 1 second
   const verificationPeriod = 3; // Must match program's VERIFICATION_PERIOD
-  await new Promise(resolve => setTimeout(resolve, (verificationPeriod + 1) * 1000));
-  
+  //await new Promise(resolve => setTimeout(resolve, (verificationPeriod + 1) * 1000));
+  await new Promise(resolve => setTimeout(resolve, 4 * 1000));
   
   await program.methods.finalizeVerification(caseId)
     .accounts({ patientCase: patientCasePda })
@@ -234,7 +234,7 @@ it('Should finalize verification after timeout', async () => {
 });
 
 it('Should create an escrow for approved case', async () => {
-   try{ // Verify case is approved before proceeding
+   // Verify case is approved before proceeding
     const caseAccount = await program.account.patientCase.fetch(patientCasePda);
    
     assert.isTrue(caseAccount.status.hasOwnProperty('approved'));
@@ -245,7 +245,7 @@ it('Should create an escrow for approved case', async () => {
       [Buffer.from("escrow"), caseId.toBuffer('le', 8)],
       program.programId
     );
-    console.log("escrowPda:", escrowPda.toString())
+    console.log("escrowPda:", escrowPda.toString());
 
     await program.methods.createEscrow(caseId)
       .accounts({
@@ -256,15 +256,14 @@ it('Should create an escrow for approved case', async () => {
       })
       .signers([trustedEntity])
       .rpc();
+      //console.log("Ayman'sPda thishastowork:", escrowPda.toString());
 
     // Verify escrow creation
     const escrowAccount = await program.account.escrowPda.fetch(escrowPda);
-    assert.equal(escrowAccount.caseId.toString(), caseId.toString(), "Case ID mismatch in escrow");
+    assert.equal(escrowAccount.caseId.toString(), caseId.toString());
+    assert.equal(escrowAccount.amount.toNumber(), 0);
     //assert.equal(escrowAccount.amount.toNumber(), 0, "Escrow should start with 0 balance");
-    console.log("escrowPda:", escrowPda);
-  } catch (err) {
-    assert.include(err.message, "Allocate: account Address");
-  }
+    //console.log("escrowPda:", escrowPda);
 });
 
   it('Should process donations to escrow', async () => {

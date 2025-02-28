@@ -8,5 +8,5 @@ pub struct EscrowPDA {
 }
 
 impl EscrowPDA {
-    pub const LEN: usize = 8 + 32 + 8;
+    pub const LEN: usize = 8 + 32 + 8 + 8;
 }

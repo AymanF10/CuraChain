@@ -36,9 +36,16 @@ impl<'info> SubmitPatientCase<'info> {
         case.timestamp = Clock::get()?.unix_timestamp;
         case.status = CaseStatus::Pending;
 
-        counter.count = counter.count.checked_add(1).unwrap();
-        case.total_verifiers = 1;
-        case.total_verifiers = 1;
+        case.approve_votes = 0;
+    case.reject_votes = 0;
+    case.total_verifiers = 1; // Match the number of whitelisted verifiers
+    
+    counter.count = counter.count.checked_add(1).unwrap();
+
+        //counter.count = counter.count.checked_add(1).unwrap();
+        //case.total_verifiers = 1;
+        //case.total_verifiers = 1;
+
         Ok(())
     }
 }
