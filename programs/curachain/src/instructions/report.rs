@@ -6,7 +6,7 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct GenerateReport<'info> {
-    #[account(seeds = [CASE_SEED, &patient_case.case_id.to_le_bytes()], bump)]
+    #[account(seeds = [CASE_SEED, &patient_case.patient.key().as_ref()], bump)]
     pub patient_case: Account<'info, PatientCase>,
     
     #[account(seeds = [ESCROW_SEED, &patient_case.case_id.to_le_bytes()], bump)]
