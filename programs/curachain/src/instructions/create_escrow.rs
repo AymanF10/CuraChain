@@ -34,3 +34,4 @@ pub fn handler(ctx: Context<CreateEscrow>, case_id: u64) -> Result<()> {
     Ok(())
 }
 }
+

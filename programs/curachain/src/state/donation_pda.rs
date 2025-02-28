@@ -8,5 +8,5 @@ pub struct DonationPDA {
 }
 
 impl DonationPDA {
-    pub const LEN: usize = 32 + 8 + 8;
+    pub const LEN: usize = 32 + 8 + 8 + 8;
 }

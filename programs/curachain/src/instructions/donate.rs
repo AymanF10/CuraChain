@@ -20,22 +20,35 @@ pub struct Donate<'info> {
     pub donor: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
-impl<'info>Donate<'info> {
-pub fn handler(ctx: Context<Donate>, amount: u64) -> Result<()> {
-    require!(amount > 0, ErrorCode::InvalidDonationAmount);
-    
-    let escrow = &mut ctx.accounts.escrow;
-    let donation = &mut ctx.accounts.donation;
-    let donor = &mut ctx.accounts.donor;
-    
-    **escrow.to_account_info().try_borrow_mut_lamports()? += amount;
-    **donor.to_account_info().try_borrow_mut_lamports()? -= amount;
-    
-    escrow.amount += amount;
-    donation.amount = amount;
-    donation.donor = *donor.key;
-    donation.case_id = escrow.case_id;
-    
-    Ok(())
+
+impl<'info> Donate<'info> {
+    pub fn handler(ctx: Context<Donate>, amount: u64) -> Result<()> {
+        require!(amount > 0, ErrorCode::InvalidDonationAmount);
+        
+        // Transfer lamports from donor to escrow securely
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.donor.to_account_info(),
+                    to: ctx.accounts.escrow.to_account_info(),
+                },
+            ),
+            amount,
+        )?;
+
+   let escrow = &mut ctx.accounts.escrow;
+    escrow.amount = escrow.amount.checked_add(amount).unwrap();
+
+        // Initialize donation account data
+        let donation = &mut ctx.accounts.donation;
+        donation.amount = amount;
+        donation.donor = *ctx.accounts.donor.key;
+        donation.case_id = ctx.accounts.escrow.case_id;
+        
+        Ok(())
+    }
 }
-}
+    
+
+    

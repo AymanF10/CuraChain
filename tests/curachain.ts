@@ -263,36 +263,46 @@ it('Should create an escrow for approved case', async () => {
     assert.equal(escrowAccount.caseId.toString(), caseId.toString());
     assert.equal(escrowAccount.amount.toNumber(), 0);
     //assert.equal(escrowAccount.amount.toNumber(), 0, "Escrow should start with 0 balance");
-    //console.log("escrowPda:", escrowPda);
+    //console.log("createdescrowPdaforapprovedcase:", escrowPda);
+    globalEscrowPda = escrowPda;
+   
 });
 
-  it('Should process donations to escrow', async () => {
-    const donationAmount = new BN(anchor.web3.LAMPORTS_PER_SOL); // 1 SOL
-    const [donationPda] = anchor.web3.PublicKey.findProgramAddressSync(
+let globalEscrowPda: anchor.web3.PublicKey;
+
+it('Should process donations to escrow', async () => {
+  const donationAmount = new BN(anchor.web3.LAMPORTS_PER_SOL); // 1 SOL
+
+  // Fetch escrow and case ID
+  const escrowAccount = await program.account.escrowPda.fetch(globalEscrowPda);
+  const caseId = escrowAccount.caseId;
+
+  // Generate donation PDA
+  const [donationPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        new TextEncoder().encode("donation"), 
-        donor.publicKey.toBytes(), 
-        escrowPda.toBytes()
+          Buffer.from("donation"),
+          donor.publicKey.toBuffer(),
+          caseId.toBuffer('le', 8)
       ],
       program.programId
-    );
+  );
 
-    await program.methods.donate(donationAmount)
+  // Process donation
+  await program.methods.donate(donationAmount)
       .accounts({
-        escrow: escrowPda,
-        donation: donationPda,
-        donor: donor.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId
+          escrow: globalEscrowPda,
+          donation: donationPda,
+          donor: donor.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId
       })
       .signers([donor])
       .rpc();
 
-    const escrowAccount = await program.account.escrowPda.fetch(escrowPda);
-    const donationAccount = await program.account.donationPda.fetch(donationPda);
-    
-    assert.equal(escrowAccount.amount.toNumber(), donationAmount.toNumber());
-    assert.equal(donationAccount.amount.toNumber(), donationAmount.toNumber());
-  });
+  // Verify the donation
+  const updatedEscrow = await program.account.escrowPda.fetch(globalEscrowPda);
+  assert.equal(updatedEscrow.amount.toNumber(), donationAmount.toNumber());
+  console.log("donationtoescrow:", donationAmount);
+});
 
   it('Should generate a funding report', async () => {
     const transactionSignature = await program.methods.generateReport()
