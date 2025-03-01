@@ -17,3 +17,4 @@ pub enum ErrorCode {
     #[msg("Duplicate vote")]
     DuplicateVote,
 }
+

@@ -23,6 +23,10 @@ describe('Curachain Medical Funding Protocol', () => {
   let caseCounterPda: anchor.web3.PublicKey;
   let escrowPda: anchor.web3.PublicKey;
   let patientCasePda: anchor.web3.PublicKey;
+  let verifierRegistryPda: anchor.web3.PublicKey;
+  let verificationPda: anchor.web3.PublicKey;
+  let verifierPda: anchor.web3.PublicKey;  // Also needed for whitelist test
+  let donationPda: anchor.web3.PublicKey;
   //let caseId: BN; 
   //const case: number = 1456;
   const caseId = new anchor.BN(1456);
@@ -145,7 +149,7 @@ it('Should submit a new patient case', async () => {
 });
 
   it('Should whitelist a medical verifier', async () => {
-    const [verifierPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [verifierPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("verifier"), verifier.publicKey.toBytes()],
     program.programId
   );
@@ -168,13 +172,13 @@ it('Should submit a new patient case', async () => {
 
   it('Should verify a patient case', async () => {
     // 1. Get verifier registry
-    const [verifierRegistryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [verifierRegistryPda] = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("verifier"), verifier.publicKey.toBytes()],
         program.programId
     );
 
     // 2. Generate verification PDA (matches program seeds)
-    const [verificationPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [verificationPda] = anchor.web3.PublicKey.findProgramAddressSync(
         [
             Buffer.from("verification"),
             patientCasePda.toBytes(),
@@ -277,7 +281,7 @@ it('Should process donations to escrow', async () => {
   const caseId = escrowAccount.caseId;
 
   // Generate donation PDA
-  const [donationPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  [donationPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [
           Buffer.from("donation"),
           donor.publicKey.toBuffer(),
@@ -316,6 +320,105 @@ it('Should generate a funding report', async () => {
 });
 
 /*
+it('Should prevent duplicate votes from same verifier', async () => {
+  try {
+      await program.methods.verifyCase(true)
+          .accounts({
+              patientCase: patientCasePda,
+              verifierRegistry: verifierRegistryPda,
+              verifier: verifier.publicKey,
+              verificationPda: verificationPda,
+              systemProgram: SystemProgram.programId
+          })
+          .signers([verifier])
+          .rpc();
+          
+      assert.fail("Should have thrown duplicate vote error");
+  } catch (err) {
+      // Check for both possible error representations
+      assert.match(
+          err.message,
+          /DuplicateVote|0x1770/i,  
+          "Expected DuplicateVote error"
+      );
+  }
+});
+
+it('Should reject zero amount donations', async () => {
+  try {
+      await program.methods.donate(new BN(0))
+          .accounts({
+              escrow: globalEscrowPda,
+              donation: donationPda,
+              donor: donor.publicKey,
+              systemProgram: SystemProgram.programId
+          })
+          .signers([donor])
+          .rpc();
+          
+      assert.fail("Should have thrown invalid amount error");
+  } catch (err) {
+      assert.include(err.message, "InvalidDonationAmount");
+  }
+});
+
+it('Should prevent non-admin from whitelisting', async () => {
+  const fakeAdmin = anchor.web3.Keypair.generate();
+  
+  try {
+      await program.methods.whitelistVerifier(verifier.publicKey, "Nurse")
+          .accounts({
+              verifierRegistry: verifierPda,
+              admin: fakeAdmin.publicKey,
+              systemProgram: SystemProgram.programId
+          })
+          .signers([fakeAdmin])
+          .rpc();
+          
+      assert.fail("Should have thrown unauthorized error");
+  } catch (err) {
+      assert.include(err.message, "Unauthorized");
+  }
+});
+
+it('Should recognize a donor', async () => {
+  const [recognitionPda] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+          Buffer.from("recognition"),
+          caseId.toBuffer('le', 8),
+          donor.publicKey.toBuffer()
+      ],
+      program.programId
+  );
+
+  await program.methods.recognizeDonor("Platinum Supporter")
+      .accounts({
+          recognition: recognitionPda,
+          admin: admin.publicKey,
+          donor: donor.publicKey,
+          caseCounter: caseCounterPda,
+          systemProgram: SystemProgram.programId
+      })
+      .signers([admin])
+      .rpc();
+
+  const recognition = await program.account.donorRecognition.fetch(recognitionPda);
+  assert.equal(recognition.recognitionType, "Platinum Supporter");
+});
+
+it('Should track case status correctly', async () => {
+  const txSig = await program.methods.trackStatus()
+      .accounts({
+          patientCase: patientCasePda
+      })
+      .rpc();
+
+  const tx = await connection.getTransaction(txSig);
+  const logs = tx.meta.logMessages.join('\n');
+  assert.include(logs, "Case Status");
+  assert.include(logs, "Approved");
+});
+
 it('Should generate a funding report', async () => {
   
   // Fetch escrow account data
