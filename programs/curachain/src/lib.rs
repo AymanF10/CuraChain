@@ -1,5 +1,3 @@
-//declare_id!("9tbn838J8Kx2XgV9sUW4wtxuMcYibGga8ja1XBZLcbzH");
-
 use anchor_lang::prelude::*;
 
 pub mod instructions;
@@ -10,8 +8,6 @@ pub mod constants;
 pub mod errors;
 
 pub use recognize::*; 
-
-
 declare_id!("GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2");
 
 #[program]

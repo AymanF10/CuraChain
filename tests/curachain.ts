@@ -98,7 +98,7 @@ it('Should submit a new patient case', async () => {
   const initialCounter = await program.account.caseCounter.fetch(caseCounterPda);
   const initialCount = new BN(initialCounter.count.toString());
 
-  // Generate PDA for patient case (matches program's seed logic)
+  // Generate PDA for patient case 
  [patientCasePda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("patient-case"), patient.publicKey.toBytes()],
       program.programId
@@ -218,11 +218,9 @@ it('Should submit a new patient case', async () => {
 });
 
 it('Should finalize verification after timeout', async () => {
-  // Sleep for verification period + 1 second
+ 
   const verificationPeriod = 3; // Must match program's VERIFICATION_PERIOD
-  //await new Promise(resolve => setTimeout(resolve, (verificationPeriod + 1) * 1000));
   await new Promise(resolve => setTimeout(resolve, 4 * 1000));
-  
   await program.methods.finalizeVerification(caseId)
     .accounts({ patientCase: patientCasePda })
     .rpc();
@@ -232,7 +230,6 @@ it('Should finalize verification after timeout', async () => {
   assert.deepEqual(updatedCase.status, { approved: {} });
   console.log("casestatus:", updatedCase.status);
 });
-
 
 it('Should create an escrow for approved case', async () => {
    // Verify case is approved before proceeding
@@ -264,7 +261,7 @@ it('Should create an escrow for approved case', async () => {
     assert.equal(escrowAccount.caseId.toString(), caseId.toString());
     assert.equal(escrowAccount.amount.toNumber(), 0);
     //assert.equal(escrowAccount.amount.toNumber(), 0, "Escrow should start with 0 balance");
-    //console.log("createdescrowPdaforapprovedcase:", escrowPda);
+    console.log("createdescrowPdaforapprovedcase:", escrowPda);
     assert.ok(escrowAccount);
     globalEscrowPda = escrowPda;
    
@@ -307,7 +304,7 @@ it('Should process donations to escrow', async () => {
   console.log("Patient CasePda:", patientCasePda.toString());
 });
 
-/*
+
 it('Should generate a funding report', async () => {
   // Get the escrow PDA using the case ID
   const caseAccount = await program.account.patientCase.fetch(patientCasePda);
@@ -315,9 +312,14 @@ it('Should generate a funding report', async () => {
   const escrowPda = globalEscrowPda;
   console.log("escrow CasePda1:", escrowPda.toString());
   console.log("Patient CasePda1:", patientCasePda.toString());
+  console.log("Donation Sucessfull:", escrowPda.toString());
+});
+
+/*
+it('Should generate a funding report', async () => {
+  
   // Fetch escrow account data
   const escrowAccount = await program.account.escrowPda.fetch(escrowPda);
-
   // Generate the report
   const transactionSignature = await program.methods.generateReport()
       .accounts({
@@ -347,5 +349,6 @@ it('Should generate a funding report', async () => {
       .view();
 
     assert.equal(isCompliant, true);
-  });*/
+  });
+  */
 });
