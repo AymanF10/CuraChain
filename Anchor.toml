@@ -5,13 +5,14 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
+[programs.devnet]
 curachain = "GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/home/aymanf10/.config/solana/id.json"
 
 [scripts]

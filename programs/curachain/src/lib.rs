@@ -71,3 +71,8 @@ declare_id!("GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2");
         instructions::compliance::CheckCompliance::handler(ctx)
     }
 }
+
+
+//Program Id: GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2
+//Signature: 4aFVWfH97PQFwD1Wv7r9sN5SdQyd8ajHDGzYujCNRoAAxdb4S98dRxznMe6JNKWcpVBYMAfDQEiQpniUsPdDaqsK
+//Deploy success
