@@ -1,28 +1,19 @@
-// @ts-nocheck
-var PublicKey = require("@solana/web3.js").PublicKey;
-var SystemProgram = require("@solana/web3.js").SystemProgram;
-var BN = require("@coral-xyz/anchor").BN;
-declare var anchor: any;
-declare var chai: any;
-declare var expect: any;
-declare var assert: any;
-declare var LAMPORTS_PER_SOL: any;
-globalThis.anchor = require("@coral-xyz/anchor");
-globalThis.BN = require("@coral-xyz/anchor").BN;
-globalThis.Program = require("@coral-xyz/anchor").Program;
-globalThis.Curachain = require("../target/types/curachain").Curachain;
-globalThis.Connection = require("@solana/web3.js").Connection;
-globalThis.Keypair = require("@solana/web3.js").Keypair;
-globalThis.LAMPORTS_PER_SOL = require("@solana/web3.js").LAMPORTS_PER_SOL;
-globalThis.SystemProgram = require("@solana/web3.js").SystemProgram;
-globalThis.chai = require("chai");
-globalThis.chaiAsPromised = require("chai-as-promised");
-globalThis.chai.use(globalThis.chaiAsPromised);
-globalThis.assert = globalThis.chai.assert;
-globalThis.expect = globalThis.chai.expect;
-globalThis.publicKey = require("@coral-xyz/anchor/dist/cjs/utils").publicKey;
+import * as anchor from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
+import { Curachain } from "../target/types/curachain";
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+} from "@solana/web3.js";
+import chai, { assert, expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
 
-describe("curachain", () => {
+chai.use(chaiAsPromised);
+
+describe("CuraChain", () => {
 
   //Testing
   const provider = anchor.AnchorProvider.env();
