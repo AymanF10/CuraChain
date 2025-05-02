@@ -438,5 +438,12 @@ pub struct AdminOverrideCase<'info> {
     )]
     pub patient_case: Account<'info, PatientCase>,
 
+    /// CHECK: This account does not exist yet and will be created as the escrow PDA for the patient case. It is safe because the PDA is derived and checked in the instruction.
+    #[account(
+        mut,
+        // This account does not exist yet, and may be created upon admin override verification
+    )]
+    pub patient_escrow: AccountInfo<'info>,
+
     pub system_program: Program<'info, System>,
 }
