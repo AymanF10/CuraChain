@@ -102,7 +102,7 @@ describe("curachain", () => {
 
 
   //Admin initialization
-  it("Admin Initialization.", async () => {
+  it("Test 1- Admin Initialization.", async () => {
   
     //  Admin PDA
     const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
@@ -132,7 +132,7 @@ describe("curachain", () => {
 
 
   //Admins initializing the global registry of verifiers
-  it("Admin Initializing The Global Registry Of Verifiers And Counter Case ID for Patient Submissions.", async () => {
+  it("Test 2- Admin Initializing The Global Registry Of Verifiers And Counter Case ID for Patient Submissions.", async () => {
     
     const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
       [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
@@ -183,7 +183,7 @@ describe("curachain", () => {
 
   //Admin adding 5 trusted verified Verifiers
 
-  it("Admin Adding 5 Verifiers", async () => {
+  it("Test 3- Admin Adding 5 Verifiers", async () => {
     // Let's initialize admin account here:
     const [adminPDA, adminBump] = PublicKey.findProgramAddressSync(
       [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
@@ -345,7 +345,7 @@ describe("curachain", () => {
 
 
   //Admin removing A Verifier From The Global Registry
-  it("Admin Removing Verifier 4 From The Global Registry.", async () => {
+  it("Test 4- Admin Removing Verifier 4 From The Global Registry.", async () => {
     // Let's get Verifier 1 PDA address
     const [verifier4PDA, verifier1Bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("verifier_role"), verifier4Keypair.publicKey.toBuffer()],
@@ -389,7 +389,7 @@ describe("curachain", () => {
 
 
   //Only Admin Can Initialize (Add or Remove) A Verifier.
-  it("Only Admin Can Initialize (Add or Remove) A Verifier.", async () => {
+  it("Test 5- Only Admin Can Initialize (Add or Remove) A Verifier.", async () => {
     // Let's set up the Admin and Verifier PDAs
     const [adminPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("admin"), newAdmin.publicKey.toBuffer()],
@@ -432,7 +432,7 @@ describe("curachain", () => {
 
 
   //Patients Submitting Medical Cases.
-  it(" Patient 1 and 2 and 3 Submit Medical Case. ", async () => {
+  it("Test 6- Patient 1 and 2 and 3 Submit Medical Case. ", async () => {
     // We setting up the respective PDAs
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -496,7 +496,7 @@ describe("curachain", () => {
       .submitCases(
         "suffering from Ehlers-Danlos Syndrome for a year now",
         new BN(50000),
-        "www.github.com/motherfucker/medical_records.pdf"
+        "www.github.com/squash/medical_records.pdf"
       )
       .accounts({
         patient: patient2Keypair.publicKey,
@@ -577,7 +577,7 @@ describe("curachain", () => {
   //Verifying Patient 1 Case
 
   // Testing for Verification On Patient 1 Case
-  it(" 4 Verifiers (1, 2, 3, 5) Verify Patient 1 Case: 5 Total Verifiers Initialized, 3 Votes a YES, and 1 a NO.", async () => {
+  it("Test 7- 4 Verifiers (1, 2, 3, 5) Verify Patient 1 Case: 5 Total Verifiers Initialized, 3 Votes a YES, and 1 a NO.", async () => {
     // Testing for verification Purpose
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -715,7 +715,7 @@ describe("curachain", () => {
   //Verifying Patient 2 Case
 
   // Testing for Verification On Patient 2 Case
-  it(" 5 Verifiers (1, 2, 3, 5, 6) On Patient 2 Case: 5 Initialized, 3 Votes a YES, and 2 a NO. 70% threshold working!!!", async () => {
+  it("Test 8- 5 Verifiers (1, 2, 3, 5, 6) On Patient 2 Case: 5 Initialized, 3 Votes a YES, and 2 a NO. 70% threshold working.", async () => {
     // Testing For Verification Purposes on Patient 2 Case
     const [patient2CasePDA, patient2CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -872,7 +872,7 @@ describe("curachain", () => {
 
 
   //Verifying Patient 3 Case
-  it(" 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Patient Case Account Is Not Verified", async () => {
+  it(" Test 9- 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Patient Case Account Is Not Verified", async () => {
     // Let's Get The Patient PDAs
     const [patient3CasePDA, patient3CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1006,7 +1006,7 @@ describe("curachain", () => {
 
 
   //A Verifier Cannot Vote Twice On A Particular Case.
-  it("A Verifier Cannot Vote Twice On A Particular Case.", async () => {
+  it("Test 10- Verifier Cannot Vote Twice On A Particular Case.", async () => {
     // Verifier 5 Voted On Case 2 In The Prior Test
 
     const [patient2CasePDA, patient2CaseBump] =
@@ -1070,7 +1070,7 @@ describe("curachain", () => {
 
  
   //A Verifier Cannot Vote On An Already Verified Case
-  it("A Verifier Cannot Vote On An Already Verified Case  ==> Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
+  it("Test 11- A Verifier Cannot Vote On An Already Verified Case  ==> Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
     //Verifier 6 Did Not Vote On Case 1 prior to it being verified.
     // Now, He attempts to Vote on Case 1, but will get a transaction revert.
     const [verifier6PDA, verifier6Bump] = PublicKey.findProgramAddressSync(
@@ -1133,7 +1133,7 @@ describe("curachain", () => {
 
 
   //Verifier cannot vote after 10 days (VotingPeriodExpired)
-  it("Verifier cannot vote after 10 days (VotingPeriodExpired)", async () => {
+  it("Test 12- Verifier cannot vote after 10 days (VotingPeriodExpired)", async () => {
     const testPatient = anchor.web3.Keypair.generate();
     await airdropSol(provider, testPatient.publicKey, 2);
 
@@ -1212,7 +1212,7 @@ describe("curachain", () => {
 
   
   //Admin cannot override before 10 days (VotingPeriodExpired)
-  it("Admin cannot override before 10 days (VotingPeriodExpired)", async () => {
+  it("Test 13- Admin cannot override before 10 days (VotingPeriodExpired)", async () => {
     const testPatient = anchor.web3.Keypair.generate();
     await airdropSol(provider, testPatient.publicKey, 2);
 
@@ -1269,7 +1269,9 @@ describe("curachain", () => {
     expect(threw).to.be.true;
   });
 
-  it("TEST 14 ::::: Admin can override after 10 days (verify)", async () => {
+
+  //Admin can override after 10 days (verify)
+  it("TEST 14- Admin can override after 10 days (verify)", async () => {
     const testPatient = anchor.web3.Keypair.generate();
     await airdropSol(provider, testPatient.publicKey, 2);
 
@@ -1336,7 +1338,7 @@ describe("curachain", () => {
   });
 
   //Admin can override after 10 days (reject)
-  it("Admin can override after 10 days (reject)", async () => {
+  it("Test 15- Admin can override after 10 days (reject)", async () => {
     const testPatient = anchor.web3.Keypair.generate();
     await airdropSol(provider, testPatient.publicKey, 2);
 
@@ -1404,7 +1406,7 @@ describe("curachain", () => {
 
 
   //Donations to Verified Case
-  it(" 2 Donors Contributing Funds To A Verified Case I", async () => {
+  it("Test 16- 2 Donors Contributing Funds To A Verified Case I", async () => {
     // Let's get the various PDAs
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1521,7 +1523,7 @@ describe("curachain", () => {
 
 
   //Donors Attempt To Contribute To An Unverified Case II or III, Must Fail
-  it("Donors Attempt To Contribute To An Unverified Case II or III, Must Fail", async () => {
+  it("Test 17- Donors Attempt To Contribute To An Unverified Case II or III, Must Fail", async () => {
     // Testing For Case II
     const [patient2CasePDA, patient2CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1575,7 +1577,7 @@ describe("curachain", () => {
 
 
   //Authorized Multisig Can Release Funds From Escrow To Treatment Wallet
-  it("Authorized Multisig Can Release Funds From Escrow To Treatment Wallet", async () => {
+  it("Test 18- Authorized Multisig Can Release Funds From Escrow To Treatment Wallet", async () => {
     // let's get required pdas
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1671,7 +1673,7 @@ describe("curachain", () => {
 
 
   //Only Authorized Admin plus 3 Verifiers Can Release Funds To Treatment Wallet
-  it("Only Authorized Admin plus 3 Verifiers Can Release Funds To Treatment Wallet", async () => {
+  it("Test 19- Only Authorized Admin plus 3 Verifiers Can Release Funds To Treatment Wallet", async () => {
     // Let Get Respective PDAs
     const [patient1CasePDA, patient1CaseBump] =
       PublicKey.findProgramAddressSync(
@@ -1780,7 +1782,7 @@ describe("curachain", () => {
 
   
   //ANY USER CAN CLOSE A REJECTED CASE
-  it("Any user can close a rejected case", async () => {
+  it("Test 20- Any user can close a rejected case", async () => {
     // Let's get the respective PDAs
     // Pretty Clear Case 3 Was Rejected, as out of 4 Verifiers, 3 rejected and only 1 approved.
     const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
@@ -1821,7 +1823,7 @@ describe("curachain", () => {
 
 
   //A VERIFIED CASE CAN NOT BE CLOSED, NOT EVEN BY ADMIN
-  it("A verified case cannot be CLOSED, even by the ADMIN", async () => {
+  it("Test 21- A verified case cannot be CLOSED, even by the ADMIN", async () => {
     // Pretty Clear Case I is verified. Attempt to close it will produce an error
     const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
       [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
@@ -1857,7 +1859,7 @@ describe("curachain", () => {
   });
 
   //A CASE THAT HAS NOT ALREADY REACHED THE 70% QUORUM EVEN THOUGH 50% VERIFIERS HAVE VOTED CAN BE CLOSED
-  it("A case that has not already reached the 70% QUORUM even though 50% VERIFIERS have voted can be CLOSED", async () => {
+  it("Test 22- A case that has not already reached the 70% QUORUM even though 50% VERIFIERS have voted can be CLOSED", async () => {
 
     // Pretty Clear Case I is verified. Attempt to close it will produce an error
     const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
