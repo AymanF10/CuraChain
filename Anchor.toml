@@ -5,15 +5,14 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-[programs.devnet]
-curachain = "GadKQ2cTG19siDDAmvVqdnTBKFrvMLSbU2x3hSXGU6G2"
+curachain = "J6DDahS4mKkJwJ6i7dcqmhj1oRVxCd1nLPwWF6Bhjyf5"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
-wallet = "/home/aymanf10/.config/solana/id.json"
+cluster = "localnet"
+wallet = "/home/ayman10/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
