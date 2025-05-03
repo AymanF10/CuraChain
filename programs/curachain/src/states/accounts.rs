@@ -22,6 +22,13 @@ pub struct CaseCounter {
     pub counter_bump: u8,
 }
 
+// Struct to track SPL token donations per patient
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, InitSpace)]
+pub struct SplDonationRecord {
+    pub mint: Pubkey, // SPL token mint address
+    pub amount: u64,  // Total amount donated in this token
+}
+
 // CREATE THE PATIENT ACCOUNT HERE
 #[account]
 #[derive(InitSpace)]
@@ -55,11 +62,21 @@ pub struct PatientCase {
     pub link_to_records: String,
 
     pub submission_timestamp: i64,
+
+    //  SPL token donation tracking ---
+    /// Up to 100 different SPL tokens per patient (can be increased by raising #[max_len(100)] and INIT_SPACE)
+    #[max_len(100)]
+    pub spl_donations: Vec<SplDonationRecord>,
 }
 
 // Add INIT_SPACE constant for PatientCase (if not present)
 impl PatientCase {
-    pub const INIT_SPACE: usize = 32 + (4 + 50) + 8 + 8 + (4 + 10) + 1 + (4 + 32 * 50) + 1 + 1 + 1 + (4 + 64) + 8; // update for submission_timestamp
+    pub const INIT_SPACE: usize = 32 + (4 + 50) + 8 + 8 + (4 + 10) + 1 + (4 + 32 * 50) + 1 + 1 + 1 + (4 + 64) + 8
+        + (4 + 100 * SplDonationRecord::INIT_SPACE); // for spl_donations
+}
+
+impl SplDonationRecord {
+    pub const INIT_SPACE: usize = 32 + 8; // mint + amount
 }
 
 // CASE ID LOOKUP

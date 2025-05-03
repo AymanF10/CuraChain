@@ -7,8 +7,8 @@ pub mod donate_funds;
 pub mod verifiers_operations;
 pub mod close_rejected_case;
 pub mod admin_override_case;
+pub mod initialize_patient_spl_account;
 
- 
 pub use create_patient_case::*;
 pub use view_case_details::*;
 pub use initialize_admin::*;
@@ -18,3 +18,4 @@ pub use verify_patient_case::*;
 pub use verifiers_operations::*;
 pub use close_rejected_case::*;
 pub use admin_override_case::*;
+pub use initialize_patient_spl_account::*;

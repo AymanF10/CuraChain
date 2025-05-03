@@ -1,4 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::{self, rent::Rent}};
+use anchor_spl::token::{self, Transfer as SplTransfer};
 
 use crate::states::{contexts::*, errors::*, ReleaseOfFunds};
 
@@ -122,6 +123,34 @@ pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> 
         }
     );
 
+   // SPL Token Release Logic
+    let multisig_seeds: &[&[u8]] = &[b"multisig"];
+    let signer_seeds: &[&[&[u8]]] = &[multisig_seeds];
+    let token_program = ctx.accounts.token_program.to_account_info();
+
+    // Support up to 2 SPL tokens
+    if let (Some(patient_ata), Some(facility_ata)) = (&ctx.accounts.patient_spl_ata_1, &ctx.accounts.facility_spl_ata_1) {
+        if let Some(spl_donation) = patient_case.spl_donations.get(0) {
+            let cpi_accounts = SplTransfer {
+                from: patient_ata.clone(),
+                to: facility_ata.clone(),
+                authority: ctx.accounts.multisig_pda.clone(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(token_program.clone(), cpi_accounts, signer_seeds);
+            token::transfer(cpi_ctx, spl_donation.amount)?;
+        }
+    }
+    if let (Some(patient_ata), Some(facility_ata)) = (&ctx.accounts.patient_spl_ata_2, &ctx.accounts.facility_spl_ata_2) {
+        if let Some(spl_donation) = patient_case.spl_donations.get(1) {
+            let cpi_accounts = SplTransfer {
+                from: patient_ata.clone(),
+                to: facility_ata.clone(),
+                authority: ctx.accounts.multisig_pda.clone(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(token_program.clone(), cpi_accounts, signer_seeds);
+            token::transfer(cpi_ctx, spl_donation.amount)?;
+        }
+    }
 
     Ok(())
 }

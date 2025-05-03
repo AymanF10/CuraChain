@@ -56,6 +56,7 @@ pub fn initialize_patient(
                 link_to_records: encrypted_medical_link,
                 case_funded: false,
                 submission_timestamp: current_time,
+                spl_donations: vec![],
             }
         );
 

@@ -77,11 +77,8 @@ pub mod curachain {
     }
 
     // Donors Make Donations To Patient's Escrow Accounts.
-    pub fn donate(ctx: Context<Donation>, case_id: String, amount_to_donate: u64) -> Result<()> {
-
-        instructions::donate_funds_to_patient_escrow(ctx, case_id, amount_to_donate)?;
-
-        Ok(())
+    pub fn donate(ctx: Context<Donation>, case_id: String, amount_to_donate: u64, mint: Pubkey) -> Result<()> {
+        instructions::donate_funds_to_patient_escrow(ctx, case_id, amount_to_donate, mint)
     }
 
     // AUTHORIZED MULTISIG TRANSFERS ACCUMULATED FUNDS TO TREATMENT WALLET 
@@ -96,6 +93,15 @@ pub mod curachain {
     pub fn admin_override_case(ctx: Context<AdminOverrideCase>, case_id: String, is_verified: bool) -> Result<()> {
         instructions::admin_override_case(ctx, case_id, is_verified)?;
         Ok(())
+    }
+
+    // Add entrypoint for initializing a PDA-owned SPL token account
+    pub fn initialize_patient_spl_account(
+        ctx: Context<InitializePatientSplAccount>,
+        case_id: String,
+        mint: Pubkey,
+    ) -> Result<()> {
+        instructions::initialize_patient_spl_account(ctx, case_id, mint)
     }
 }
 
