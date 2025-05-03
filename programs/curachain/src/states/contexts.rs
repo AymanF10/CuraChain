@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
-use crate::states::accounts::*;
-use crate::states::errors::*;
-use anchor_spl::token::TokenAccount;
-
+use anchor_spl::token_interface::{Mint, TokenInterface, TokenAccount};
+use crate::states::{Administrator, CaseCounter, PatientCase, CaseIDLookup, DonorInfo, Verifier, VerifiersList};
+use crate::states::errors::CuraChainError;
 
 // THE ADMIN CONFIG STRUCT
 #[derive(Accounts)]
@@ -271,7 +270,6 @@ pub struct Donation<'info> {
     #[account(mut)]
     pub donor: Signer<'info>,
 
-    // Get Case Lookup pda using specified Case ID
     #[account(
         mut,
         seeds = [b"case_lookup", case_id.as_bytes()],
@@ -280,7 +278,6 @@ pub struct Donation<'info> {
     )]
     pub case_lookup: Account<'info, CaseIDLookup>,
 
-    // We Use the case_lookup to find the Patient case
     #[account(
         mut,
         seeds = [b"patient", case_lookup.patient_address.as_ref()],
@@ -294,7 +291,6 @@ pub struct Donation<'info> {
     #[account(mut, owner = system_program.key())]
     pub patient_escrow: AccountInfo<'info>,
 
-    // Donor Info PDA here
     #[account(
         init_if_needed,
         payer = donor,
@@ -306,21 +302,23 @@ pub struct Donation<'info> {
 
     // NEW: SPL Token Support 
     #[account(mut)]
-    pub donor_ata: Option<Account<'info, TokenAccount>>,
+    pub donor_ata: Option<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
-    pub patient_ata: Option<Account<'info, TokenAccount>>,
+    pub patient_ata: Option<InterfaceAccount<'info, TokenAccount>>,
 
-    /// The SPL Token Program
-    pub token_program: Program<'info, anchor_spl::token::Token>,
+    /// The token interface program
+    pub token_program: Interface<'info, TokenInterface>,
 
     pub system_program: Program<'info, System>,
 
-    /// CHECK: This is the multisig PDA, derived and checked in the instruction logic as the authority for SPL transfers.
+    /// CHECK: This is the multisig PDA (authority/owner of the SPL token account)
     #[account(mut)]
     pub multisig_pda: AccountInfo<'info>,
-}
 
+    /// The mint for SPL token donations
+    pub mint: Option<InterfaceAccount<'info, Mint>>,
+}
 
 #[derive(Accounts)]
 #[instruction(case_id: String)]
@@ -329,7 +327,7 @@ pub struct ReleaseFunds<'info> {
         mut,
         seeds = [b"case_lookup", case_id.as_bytes()],
         bump = case_lookup.case_lookup_bump,
-        constraint = case_lookup.case_id_in_lookup == case_id @ CuraChainError::InvalidCaseID,
+        constraint = case_lookup.case_id_in_lookup == case_id @CuraChainError::InvalidCaseID,
     )]
     pub case_lookup: Account<'info, CaseIDLookup>,
 
@@ -338,12 +336,11 @@ pub struct ReleaseFunds<'info> {
         seeds = [b"patient", case_lookup.patient_address.as_ref()],
         bump = patient_case.patient_case_bump,
         constraint = patient_case.key() == case_lookup.patient_pda.key() @ CuraChainError::InvalidCaseID,
-        constraint = patient_case.case_id == case_id @ CuraChainError::InvalidCaseID,
     )]
     pub patient_case: Account<'info, PatientCase>,
 
     /// CHECK: This account has already been created and is safe because the PDA is derived and checked in the instruction.
-    #[account(mut, owner = system_program.key())]
+    #[account(mut)]
     pub patient_escrow: AccountInfo<'info>,
 
     /// CHECK: This is the treatment facility's address and is validated in the instruction logic.
@@ -363,21 +360,41 @@ pub struct ReleaseFunds<'info> {
     #[account(mut)]
     pub verifier3: Signer<'info>,
 
-    #[account(mut, seeds = [b"verifier_role", verifier1.key().as_ref()], bump = verifier1_pda.verifier_bump)]
+    #[account(
+        seeds = [b"verifier_role", verifier1.key().as_ref()],
+        bump = verifier1_pda.verifier_bump,
+        constraint = verifier1_pda.verifier_key == verifier1.key() @ CuraChainError::InvalidVerifier
+    )]
     pub verifier1_pda: Account<'info, Verifier>,
-    #[account(mut, seeds = [b"verifier_role", verifier2.key().as_ref()], bump = verifier2_pda.verifier_bump)]
+
+    #[account(
+        seeds = [b"verifier_role", verifier2.key().as_ref()],
+        bump = verifier2_pda.verifier_bump,
+        constraint = verifier2_pda.verifier_key == verifier2.key() @ CuraChainError::InvalidVerifier
+    )]
     pub verifier2_pda: Account<'info, Verifier>,
-    #[account(mut, seeds = [b"verifier_role", verifier3.key().as_ref()], bump = verifier3_pda.verifier_bump)]
+
+    #[account(
+        seeds = [b"verifier_role", verifier3.key().as_ref()],
+        bump = verifier3_pda.verifier_bump,
+        constraint = verifier3_pda.verifier_key == verifier3.key() @ CuraChainError::InvalidVerifier
+    )]
     pub verifier3_pda: Account<'info, Verifier>,
 
-    #[account(seeds = [b"verifiers_list"], bump = verifiers_list.verifier_registry_bump)]
+    #[account(
+        mut,
+        seeds = [b"verifiers_list"],
+        bump = verifiers_list.verifier_registry_bump
+    )]
     pub verifiers_list: Account<'info, VerifiersList>,
 
-    /// CHECK: This is the multisig PDA, derived and checked in the instruction logic as the authority for SPL transfers.
+    /// CHECK: This is the multisig PDA (authority/owner of the SPL token accounts)
     #[account(mut)]
     pub multisig_pda: AccountInfo<'info>,
 
-    pub token_program: Program<'info, anchor_spl::token::Token>,
+    /// The token interface program
+    pub token_program: Interface<'info, TokenInterface>,
+    
     pub system_program: Program<'info, System>,
 }
 
@@ -401,7 +418,7 @@ pub struct AdminOverrideCase<'info> {
         mut,
         seeds = [b"case_lookup", case_id.as_bytes()],
         bump = case_lookup.case_lookup_bump,
-        constraint = case_lookup.case_id_in_lookup == case_id @ CuraChainError::InvalidCaseID,
+        constraint = case_lookup.case_id_in_lookup == case_id @CuraChainError::InvalidCaseID,
     )]
     pub case_lookup: Account<'info, CaseIDLookup>,
 

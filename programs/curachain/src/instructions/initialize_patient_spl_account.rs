@@ -1,15 +1,21 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, Mint, InitializeAccount, initialize_account, spl_token, TokenAccount};
+use anchor_spl::token_interface::{TokenInterface, Mint, initialize_account, InitializeAccount};
+
+// Constants
+const TOKEN_ACCOUNT_SIZE: u64 = 165; // Standard size for a token account (TokenAccount::LEN from spl_token)
 
 #[derive(Accounts)]
 #[instruction(case_id: String, mint: Pubkey)]
 pub struct InitializePatientSplAccount<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    pub mint: Account<'info, Mint>,
+    
+    pub mint: InterfaceAccount<'info, Mint>,
+    
     /// CHECK: The multisig PDA (authority/owner of the SPL token account)
     #[account(mut)]
     pub multisig_pda: AccountInfo<'info>,
+    
     /// CHECK: The PDA for the SPL token account to be created
     #[account(
         mut,
@@ -17,8 +23,9 @@ pub struct InitializePatientSplAccount<'info> {
         bump,
     )]
     pub patient_spl_ata: AccountInfo<'info>,
+    
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub rent: Sysvar<'info, Rent>,
 }
 
@@ -27,7 +34,7 @@ pub fn initialize_patient_spl_account(
     case_id: String,
     _mint: Pubkey,
 ) -> Result<()> {
-    use anchor_lang::solana_program::{program::invoke_signed, system_instruction, rent::Rent};
+    use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 
     let multisig_pda = ctx.accounts.multisig_pda.key();
     let patient_spl_ata = ctx.accounts.patient_spl_ata.to_account_info();
@@ -43,13 +50,13 @@ pub fn initialize_patient_spl_account(
 
     // 1. Create the account at the PDA address
     let rent = Rent::get()?;
-    let lamports = rent.minimum_balance(TokenAccount::LEN);
+    let lamports = rent.minimum_balance(TOKEN_ACCOUNT_SIZE as usize);
     let create_account_ix = system_instruction::create_account(
         &payer.key(),
         &patient_spl_ata.key(),
         lamports,
-        TokenAccount::LEN as u64,
-        &spl_token::ID,
+        TOKEN_ACCOUNT_SIZE,
+        &token_program.key(),
     );
     invoke_signed(
         &create_account_ix,

@@ -27,6 +27,9 @@ pub enum CuraChainError{
     #[msg("Specified Verifier Address Does Not Exists")]
     InvalidVerifierAddress,
 
+    #[msg("Invalid Verifier for Operation")]
+    InvalidVerifier,
+
     #[msg("Key Generation Was Not Successful")]
     KeyGenerationError,
 

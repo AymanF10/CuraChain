@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::{self, rent::Rent}};
-use anchor_spl::token::{self, Transfer as SplTransfer};
+use anchor_spl::token_interface::{transfer_checked, TransferChecked, Mint};
 
 use crate::states::{contexts::*, errors::*, ReleaseOfFunds};
 
@@ -141,14 +141,19 @@ pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> 
                 msg!("No SPL funds available for mint {}", mint.key);
                 continue;
             }
-            let cpi_accounts = SplTransfer {
+            let cpi_accounts = TransferChecked {
                 from: patient_ata.clone(),
                 to: facility_ata.clone(),
                 authority: ctx.accounts.multisig_pda.to_account_info(),
+                mint: mint.clone(),
             };
             let cpi_ctx = CpiContext::new_with_signer(token_program.clone(), cpi_accounts, signer_seeds);
+            
+            // Convert AccountInfo to InterfaceAccount<Mint>
+            let mint_account: InterfaceAccount<Mint> = InterfaceAccount::try_from(mint)?;
+            
             msg!("Transferring {} tokens of mint {} from {} to {}", spl_available, mint.key, patient_ata.key, facility_ata.key);
-            token::transfer(cpi_ctx, spl_available)?;
+            transfer_checked(cpi_ctx, spl_available, mint_account.decimals)?;
             // Now re-borrow mutably to update
             msg!("[DEBUG] SPL release pre-check: total_raised={}, spl_donation.amount={}, spl_available={}", total_raised, amount, spl_available);
             require!(total_raised >= spl_available, CuraChainError::UnderflowError);
@@ -161,11 +166,11 @@ pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> 
             let prev_total_needed = total_amount_needed;
             patient_case.total_amount_needed = total_amount_needed.checked_sub(subtract_from_needed).ok_or(CuraChainError::UnderflowError)?;
             msg!("[DEBUG] SPL release: spl_available={}, prev_total_raised={}, new_total_raised={}, prev_spl_amount={}, new_spl_amount={}, subtract_from_needed={}, prev_total_needed={}, new_total_needed={}", spl_available, prev_total_raised, patient_case.total_raised, prev_spl_amount, patient_case.spl_donations[idx].amount, subtract_from_needed, prev_total_needed, patient_case.total_amount_needed);
-            // Defensive: assert non-negative
+            // Defensive: assert values were reduced
             require!(patient_case.total_raised <= prev_total_raised, CuraChainError::UnderflowError);
             require!(patient_case.spl_donations[idx].amount <= prev_spl_amount, CuraChainError::UnderflowError);
-            require!(patient_case.total_raised >= 0, CuraChainError::UnderflowError);
-            require!(patient_case.spl_donations[idx].amount >= 0, CuraChainError::UnderflowError);
+
+            // Reset case funded flag if there is still more needed after partial release of funds
             if patient_case.total_raised < patient_case.total_amount_needed + 1_000_000 {
                 patient_case.case_funded = false;
             }
