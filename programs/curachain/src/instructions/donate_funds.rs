@@ -36,16 +36,23 @@ pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, case_id: String, a
         transfer(cpi_ctx, amount_to_donate)?;
     } else {
         // --- SPL TOKEN DONATION LOGIC ---
-        // Donor sends SPL tokens to the multisig-owned patient ATA
-        let donor_ata = ctx.accounts.donor_ata.to_account_info();
-        let patient_ata = ctx.accounts.patient_ata.to_account_info(); // This ATA must be owned by the multisig PDA
+        // Manual checks for Option<Account<'info, TokenAccount>>
+        let donor_ata = ctx.accounts.donor_ata.as_ref().ok_or(CuraChainError::MissingDonorAta)?;
+        let patient_ata = ctx.accounts.patient_ata.as_ref().ok_or(CuraChainError::MissingPatientAta)?;
+        require!(donor_ata.mint == mint, CuraChainError::InvalidMint);
+        require!(donor_ata.owner == ctx.accounts.donor.key(), CuraChainError::InvalidDonor);
+        require!(patient_ata.mint == mint, CuraChainError::InvalidMint);
+        require!(patient_ata.owner == ctx.accounts.multisig_pda.key(), CuraChainError::InvalidAuthority);
+
+        let donor_ata_info = donor_ata.to_account_info();
+        let patient_ata_info = patient_ata.to_account_info(); // This ATA must be owned by the multisig PDA
         let token_program = ctx.accounts.token_program.to_account_info();
         let donor = ctx.accounts.donor.to_account_info();
 
         // Donor is the authority for this transfer
         let cpi_accounts = SplTransfer {
-            from: donor_ata,
-            to: patient_ata,
+            from: donor_ata_info,
+            to: patient_ata_info,
             authority: donor.clone(),
         };
         let cpi_ctx = CpiContext::new(token_program, cpi_accounts);
@@ -64,6 +71,10 @@ pub fn donate_funds_to_patient_escrow(ctx: Context<Donation>, case_id: String, a
             require!(patient_case.spl_donations.len() < 10, CuraChainError::OverflowError); // Respect max_len
             patient_case.spl_donations.push(SplDonationRecord { mint, amount: amount_to_donate });
         }
+        // Defensive: never allow overflow
+        let new_total_raised = patient_case.total_raised.checked_add(amount_to_donate).ok_or(CuraChainError::OverflowError)?;
+        msg!("[DEBUG] SPL donation: mint={}, amount_to_donate={}, prev_total_raised={}, new_total_raised={}", mint, amount_to_donate, patient_case.total_raised, new_total_raised);
+        patient_case.total_raised = new_total_raised;
     }
 
     // If Case Has Reached Full Funding, Let's Reset The CaseFunded to true, to prevent further funds

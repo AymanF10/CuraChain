@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::states::accounts::*;
 use crate::states::errors::*;
+use anchor_spl::token::TokenAccount;
 
 
 // THE ADMIN CONFIG STRUCT
@@ -304,13 +305,11 @@ pub struct Donation<'info> {
     pub donor_account: Account<'info, DonorInfo>,
 
     // NEW: SPL Token Support 
-    /// CHECK: Donor's Associated Token Account for the SPL token (if SPL)
     #[account(mut)]
-    pub donor_ata: AccountInfo<'info>,
+    pub donor_ata: Option<Account<'info, TokenAccount>>,
 
-    /// CHECK: Patient's Associated Token Account for the SPL token (if SPL)
     #[account(mut)]
-    pub patient_ata: AccountInfo<'info>,
+    pub patient_ata: Option<Account<'info, TokenAccount>>,
 
     /// The SPL Token Program
     pub token_program: Program<'info, anchor_spl::token::Token>,
@@ -377,16 +376,6 @@ pub struct ReleaseFunds<'info> {
     /// CHECK: This is the multisig PDA, derived and checked in the instruction logic as the authority for SPL transfers.
     #[account(mut)]
     pub multisig_pda: AccountInfo<'info>,
-
-    // Support up to 2 SPL tokens (expand as needed)
-    #[account(mut)]
-    pub patient_spl_ata_1: Option<AccountInfo<'info>>,
-    #[account(mut)]
-    pub patient_spl_ata_2: Option<AccountInfo<'info>>,
-    #[account(mut)]
-    pub facility_spl_ata_1: Option<AccountInfo<'info>>,
-    #[account(mut)]
-    pub facility_spl_ata_2: Option<AccountInfo<'info>>,
 
     pub token_program: Program<'info, anchor_spl::token::Token>,
     pub system_program: Program<'info, System>,

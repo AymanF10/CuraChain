@@ -13,7 +13,7 @@ pub struct InitializePatientSplAccount<'info> {
     /// CHECK: The PDA for the SPL token account to be created
     #[account(
         mut,
-        seeds = [b"patient_spl", case_id.as_bytes(), multisig_pda.key().as_ref()],
+        seeds = [b"patient_spl", case_id.as_bytes(), mint.key().as_ref(), multisig_pda.key().as_ref()],
         bump,
     )]
     pub patient_spl_ata: AccountInfo<'info>,
@@ -36,9 +36,9 @@ pub fn initialize_patient_spl_account(
     let rent_sysvar = ctx.accounts.rent.to_account_info();
     let payer = ctx.accounts.payer.to_account_info();
 
-    let seeds = &[b"patient_spl", case_id.as_bytes(), multisig_pda.as_ref()];
+    let seeds = &[b"patient_spl", case_id.as_bytes(), mint.key.as_ref(), multisig_pda.as_ref()];
     let (_pda, bump) = Pubkey::find_program_address(seeds, ctx.program_id);
-    let signer_seeds: &[&[u8]] = &[b"patient_spl", case_id.as_bytes(), multisig_pda.as_ref(), &[bump]];
+    let signer_seeds: &[&[u8]] = &[b"patient_spl", case_id.as_bytes(), mint.key.as_ref(), multisig_pda.as_ref(), &[bump]];
     let signer = &[&signer_seeds[..]];
 
     // 1. Create the account at the PDA address

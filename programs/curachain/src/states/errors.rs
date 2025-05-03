@@ -83,4 +83,19 @@ pub enum CuraChainError{
 
     #[msg("Verifier voting period has expired")]
     VotingPeriodExpired,
+
+    #[msg("Missing Donor Ata")]
+    MissingDonorAta,
+
+    #[msg("Missing Patient Ata")]
+    MissingPatientAta,
+
+    #[msg("Invalid Mint")]
+    InvalidMint,
+
+    #[msg("Invalid Donor")]
+    InvalidDonor,
+
+    #[msg("Invalid Authority")]
+    InvalidAuthority,
 }

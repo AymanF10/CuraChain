@@ -1468,14 +1468,17 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
   const [adminPDA] = PublicKey.findProgramAddressSync(
     [Buffer.from("admin"), newAdmin.publicKey.toBuffer()], program.programId
   );
+  const [donorAccountPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("donor"), testDonor.publicKey.toBuffer()],
+    program.programId
+  );
+  const [multisigPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("multisig")],
+    program.programId
+  );
   // FIX: Define patientEscrowPDA for this test
   const [patientEscrowPDA] = PublicKey.findProgramAddressSync(
     [Buffer.from("patient_escrow"), Buffer.from(nextCaseId), testPatientCasePDA.toBuffer()],
-    program.programId
-  );
-  // FIX: Define donorAccountPDA for this test
-  const [donorAccountPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from("donor"), testDonor.publicKey.toBuffer()],
     program.programId
   );
 
@@ -1533,8 +1536,10 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       patientCase: testPatientCasePDA,
       patientEscrow: patientEscrowPDA,
       donorAccount: donorAccountPDA,
-      donorAta: testDonor.publicKey,       
-      patientAta: testPatient.publicKey,  
+      multisigPda: multisigPda,
+      donorAta: null,
+      patientAta: null,
+      tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
     .signers([testDonor])
@@ -1582,6 +1587,11 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       program.programId
     );
 
+    const [multisigPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("multisig")],
+      program.programId
+    );
+
     // Every created PDA account in solana needs a rent-exempt.
     //So, i get the rent exempt for an account with 0 data, which is 890880 lamports
     // This is to get the actual lamports in the escrow PDA account excluding the rent-exempt
@@ -1589,25 +1599,19 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       await program.provider.connection.getMinimumBalanceForRentExemption(0);
 
     // Let's let Donor 1 Call Donate Instructions
-    const [multisigPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("multisig")],
-      program.programId
-    );
-
     await program.methods
       .donate("CASE0001", new BN(15000), new PublicKey("11111111111111111111111111111111"))
       .accounts({
         donor: donor1Keypair.publicKey,
-        // @ts-ignore
         caseLookup: caseLookupPDA,
         patientCase: patient1CasePDA,
         patientEscrow: patient1EscrowPDA,
-        caseCounter: caseCounterPDA,
         donorAccount: donor1PDA,
-        donorAta: donor1Keypair.publicKey,      
-        patientAta: patient1Keypair.publicKey,
-        multisigPda: multisigPda
-,        systemProgram: SystemProgram.programId,
+        multisigPda: multisigPda,
+        donorAta: null,
+        patientAta: null,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       .signers([donor1Keypair])
       .rpc();
@@ -1617,15 +1621,14 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       .donate("CASE0001", new BN(4500), new PublicKey("11111111111111111111111111111111"))
       .accounts({
         donor: donor2Keypair.publicKey,
-        // @ts-ignore
         caseLookup: caseLookupPDA,
         patientCase: patient1CasePDA,
         patientEscrow: patient1EscrowPDA,
-        caseCounter: caseCounterPDA,
         donorAccount: donor2PDA,
-        donorAta: donor2Keypair.publicKey,      
-        patientAta: patient1Keypair.publicKey, 
         multisigPda: multisigPda,
+        donorAta: null,
+        patientAta: null,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([donor2Keypair])
@@ -1636,15 +1639,14 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       .donate("CASE0001", new BN(100), new PublicKey("11111111111111111111111111111111"))
       .accounts({
         donor: donor1Keypair.publicKey,
-        // @ts-ignore
         caseLookup: caseLookupPDA,
         patientCase: patient1CasePDA,
         patientEscrow: patient1EscrowPDA,
-        caseCounter: caseCounterPDA,
         donorAccount: donor1PDA,
-        donorAta: donor1Keypair.publicKey,      
-        patientAta: patient1Keypair.publicKey,
         multisigPda: multisigPda,
+        donorAta: null,
+        patientAta: null,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([donor1Keypair])
@@ -1709,7 +1711,6 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       program.programId
     );
 
-    // Let Donor 2 contribute 30000 to Unverified Case II
     const [multisigPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("multisig")],
       program.programId
@@ -1717,26 +1718,30 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
 
     try {
       await program.methods
-  .donate("CASE0002", new BN(30000), new PublicKey("11111111111111111111111111111111"))
-  .accounts({
-    donor: donor1Keypair.publicKey,
-    caseLookup: caseLookupPDA2,
-    patientCase: patient2CasePDA,
-    patientEscrow: patient2EscrowPDA,
-    caseCounter: caseCounterPDA,
-    donorAccount: donor1PDA,
-    donorAta: donor1Keypair.publicKey,      
-    patientAta: patient2Keypair.publicKey,  
-    multisigPda: multisigPda,
-    systemProgram: SystemProgram.programId,
-  })
-  .signers([donor1Keypair])
-  .rpc();
+        .donate("CASE0002", new BN(30000), new PublicKey("11111111111111111111111111111111"))
+        .accounts({
+          donor: donor1Keypair.publicKey,
+          caseLookup: caseLookupPDA2,
+          patientCase: patient2CasePDA,
+          patientEscrow: patient2EscrowPDA,
+          donorAccount: donor1PDA,
+          multisigPda: multisigPda,
+          donorAta: null,  // For SOL donations this is null
+          patientAta: null,  // For SOL donations this is null
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([donor1Keypair])
+        .rpc();
+      // If we get here, something went wrong - should have thrown an error
+      throw new Error("Expected UnverifiedCase error");
     } catch (err) {
+      // This is the expected path - donation should fail
       if (err.error && err.error.errorCode) {
         expect(err.error.errorCode.code).to.equal("UnverifiedCase");
       } else {
-        expect(err).to.be.ok;
+        console.log("Unexpected error:", err);
+        throw err;
       }
     }
   });
@@ -1746,7 +1751,7 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
    it("Test 19- Donors can donate both SOL and SPL tokens to Patient 1's case and track donations", async () => {
     // Setup: Create a new test SPL mint
     const testPayer = anchor.web3.Keypair.generate();
-await airdropSol(provider, testPayer.publicKey, 2);
+    await airdropSol(provider, testPayer.publicKey, 2);
 
     const mintAuthority = Keypair.generate();
     const splMint = await createMint(
@@ -1790,37 +1795,12 @@ await airdropSol(provider, testPayer.publicKey, 2);
       [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
       program.programId
     );
-    // Only declare multisigPda once here
     const [multisigPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("multisig")],
       program.programId
     );
-    
-   
 
-    // Derive a PDA for the multisig-owned SPL token account
-    const [patient1SplPda, patient1SplBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("patient_spl"), Buffer.from("CASE0001"), multisigPda.toBuffer()],
-      program.programId
-    );
-    // Create the token account at that PDA address
-    // Call the Anchor instruction to initialize the multisig-owned SPL token account
-  await program.methods
-   .initializePatientSplAccount("CASE0001", splMint)
-  .accounts({
-      payer: testPayer.publicKey,
-      patientCase: patient1CasePDA,
-      multisigPda: multisigPda,
-      patientSplAta: patient1SplPda,
-      mint: splMint,
-      systemProgram: SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-})
-.signers([testPayer])
-.rpc();
-    
-    // Donate SOL
+    // For SOL donation
     await program.methods
       .donate("CASE0001", new BN(1000), new PublicKey("11111111111111111111111111111111"))
       .accounts({
@@ -1828,17 +1808,39 @@ await airdropSol(provider, testPayer.publicKey, 2);
         caseLookup: caseLookupPDA,
         patientCase: patient1CasePDA,
         patientEscrow: patient1EscrowPDA,
-        donorAccount: donor1PDA, // DonorInfo PDA
-        donorAta: donor1Ata.address,
-        patientAta: patient1SplPda,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        donorAccount: donor1PDA,
         multisigPda: multisigPda,
+        donorAta: null,  // For SOL donations this is null
+        patientAta: null,  // For SOL donations this is null
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([donor1Keypair])
       .rpc();
 
-    // Donate SPL token
+    // Initialize SPL token account with correct PDA derivation
+    const [patient1SplPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("patient_spl"), Buffer.from("CASE0001"), splMint.toBuffer(), multisigPda.toBuffer()],
+      program.programId
+    );
+
+    // Initialize the patient's SPL token account
+    await program.methods
+      .initializePatientSplAccount("CASE0001", splMint)
+      .accounts({
+        payer: testPayer.publicKey,
+        patientCase: patient1CasePDA,
+        multisigPda: multisigPda,
+        patientSplAta: patient1SplPda,
+        mint: splMint,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .signers([testPayer])
+      .rpc();
+
+    // For SPL token donation
     await program.methods
       .donate("CASE0001", new BN(500_000), splMint)
       .accounts({
@@ -1846,10 +1848,10 @@ await airdropSol(provider, testPayer.publicKey, 2);
         caseLookup: caseLookupPDA,
         patientCase: patient1CasePDA,
         patientEscrow: patient1EscrowPDA,
-        donorAccount: donor1PDA, // DonorInfo PDA
+        donorAccount: donor1PDA,
         donorAta: donor1Ata.address,
         patientAta: patient1SplPda,
-        multisigPda: multisigPda, 
+        multisigPda: multisigPda,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
@@ -1905,24 +1907,33 @@ await airdropSol(provider, testPayer.publicKey, 2);
       [Buffer.from("multisig")],
       program.programId
     );
+
+    // Ensure all verifiers are initialized before proceeding
+    await ensureVerifierExists(verifier1Keypair, verifier1PDA, adminPDA, verifiersListPDA);
+    await ensureVerifierExists(verifier2Keypair, verifier2PDA, adminPDA, verifiersListPDA);
+    await ensureVerifierExists(verifier3Keypair, verifier3PDA, adminPDA, verifiersListPDA);
+
+    // Airdrop more SOL to ensure sufficient rent
+    await airdropSol(provider, newAdmin.publicKey, 5);
+    await airdropSol(provider, facility_address.publicKey, 5);
   
-    // 1. a dummy SPL mint
+    // 1. Create a dummy SPL mint
     const dummyMint = await createMint(
       provider.connection,
-      newAdmin, // payer
-      newAdmin.publicKey, // mint authority
-      null, // freeze authority
-      0 // decimals
+      newAdmin,
+      newAdmin.publicKey,
+      null,
+      0
     );
   
-    // 2 multisig-owned SPL token account at a PDA
-    const [patientSplAta1PDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("patient_spl"), Buffer.from("CASE0001"), multisigPda.toBuffer()],
+    // 2. Create multisig-owned SPL token account at a PDA
+    const [patient1SplPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("patient_spl"), Buffer.from("CASE0001"), dummyMint.toBuffer(), multisigPda.toBuffer()],
       program.programId
     );
   
-    // Check if the account exists before initializing
-    const accountInfo = await provider.connection.getAccountInfo(patientSplAta1PDA);
+    // Initialize the patient's SPL token account if it doesn't exist
+    const accountInfo = await provider.connection.getAccountInfo(patient1SplPda);
     if (!accountInfo) {
       await program.methods
         .initializePatientSplAccount("CASE0001", dummyMint)
@@ -1930,7 +1941,7 @@ await airdropSol(provider, testPayer.publicKey, 2);
           payer: newAdmin.publicKey,
           patientCase: patient1CasePDA,
           multisigPda: multisigPda,
-          patientSplAta: patientSplAta1PDA,
+          patientSplAta: patient1SplPda,
           mint: dummyMint,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -1940,18 +1951,13 @@ await airdropSol(provider, testPayer.publicKey, 2);
         .rpc();
     }
   
-    // 3. facility's ATA for the same mint
+    // 3. Create facility's ATA for the same mint
     const facilitySplAta1 = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       newAdmin, // payer
       dummyMint,
       facility_address.publicKey // owner
     );
-  
-    //  all verifiers 
-    await ensureVerifierExists(verifier1Keypair, verifier1PDA, adminPDA, verifiersListPDA);
-    await ensureVerifierExists(verifier2Keypair, verifier2PDA, adminPDA, verifiersListPDA);
-    await ensureVerifierExists(verifier3Keypair, verifier3PDA, adminPDA, verifiersListPDA);
   
     // Call the releaseFunds instruction
     await program.methods
@@ -1971,25 +1977,25 @@ await airdropSol(provider, testPayer.publicKey, 2);
         verifier3Pda: verifier3PDA,
         facilityAddress: facility_address.publicKey,
         multisigPda: multisigPda,
-        patientSplAta1: patientSplAta1PDA,
-        facilitySplAta1: facilitySplAta1.address,
-        patientSplAta2: patientSplAta1PDA, 
-        facilitySplAta2: facilitySplAta1.address, 
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
+      .remainingAccounts([
+        { pubkey: patient1SplPda, isWritable: true, isSigner: false },
+        { pubkey: facilitySplAta1.address, isWritable: true, isSigner: false },
+        { pubkey: dummyMint, isWritable: false, isSigner: false },
+      ])
       .signers([newAdmin, verifier1Keypair, verifier2Keypair, verifier3Keypair])
       .rpc();
   
-    // Assert: Escrow is empty or only rent-exempt left
+    // Assert: Escrow should be empty or only contain rent-exempt amount
     const escrowBalance = await provider.connection.getBalance(patient1EscrowPDA);
     expect(escrowBalance).to.be.lte(1_000_000); // Only rent-exempt left or closed
   
-    // Assert: SPL token account is empty (if you want)
-    const patientSpl1 = await getAccount(provider.connection, patientSplAta1PDA);
+    // Check SPL token accounts
+    const patientSpl1 = await getAccount(provider.connection, patient1SplPda);
     const facilitySpl1 = await getAccount(provider.connection, facilitySplAta1.address);
     expect(Number(patientSpl1.amount)).to.eq(0);
-    // The facility's ATA may have received tokens if there were SPL donations
   });
 
 
