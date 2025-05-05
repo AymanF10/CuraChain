@@ -11,12 +11,17 @@ pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> 
     let treatment_address = &mut ctx.accounts.facility_address;
     let case_lookup = &ctx.accounts.case_lookup;
 
-
-    //Let's validate that the PDAs of the signers are actual verifiers from the registry
+    // First validate that the PDAs of the signers are actual verifiers from the registry
     require!(verifiers_registry.all_verifiers.contains(&ctx.accounts.verifier1_pda.key()) && 
         verifiers_registry.all_verifiers.contains(&ctx.accounts.verifier2_pda.key()) && 
         verifiers_registry.all_verifiers.contains(&ctx.accounts.verifier3_pda.key()), 
         CuraChainError::VerifierNotFound);
+
+    // Then validate that these verifiers participated in verifying this case
+    require!(patient_case.voted_verifiers.contains(&ctx.accounts.verifier1_pda.key()) &&
+        patient_case.voted_verifiers.contains(&ctx.accounts.verifier2_pda.key()) &&
+        patient_case.voted_verifiers.contains(&ctx.accounts.verifier3_pda.key()),
+        CuraChainError::NotEnoughVerifiers);
 
     // We Get The Escrow Balance Including Rent-exempt
     let total_escrow_balance = patient_escrow.lamports();
@@ -96,8 +101,6 @@ pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> 
                 .ok_or(CuraChainError::OverflowError)?;
         }
     }
-
-
 
     // EMIT AN EVENT FOR THIS INSTRUCTION ON-CHAIN ANYTIME THERE IS A RELEASE OF FUNDS
     let current_time = Clock::get()?.unix_timestamp;
