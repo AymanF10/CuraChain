@@ -1913,33 +1913,51 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       [Buffer.from("multisig")],
       program.programId
     );
-
-    // Ensure all verifiers are initialized before proceeding
+  
+    // Ensure all verifiers are initialized
     await ensureVerifierExists(verifier1Keypair, verifier1PDA, adminPDA, verifiersListPDA);
     await ensureVerifierExists(verifier2Keypair, verifier2PDA, adminPDA, verifiersListPDA);
     await ensureVerifierExists(verifier3Keypair, verifier3PDA, adminPDA, verifiersListPDA);
-
-    // Airdrop more SOL to ensure sufficient rent
+  
+    // Airdrop SOL and verify balance
     await airdropSol(provider, newAdmin.publicKey, 5);
+    const newAdminBalance = await provider.connection.getBalance(newAdmin.publicKey);
+    console.log("newAdmin balance after airdrop:", newAdminBalance / LAMPORTS_PER_SOL, "SOL");
+    if (newAdminBalance < 2 * LAMPORTS_PER_SOL) {
+      throw new Error("Insufficient balance for newAdmin after airdrop");
+    }
     await airdropSol(provider, facility_address.publicKey, 5);
   
-    // 1. Create a dummy SPL mint
-    const dummyMint = await createMint(
-      provider.connection,
-      newAdmin,
-      newAdmin.publicKey,
-      null,
-      0
-    );
+    // Create a dummy SPL mint with error handling
+    let dummyMint;
+    try {
+      dummyMint = await createMint(
+        provider.connection,
+        newAdmin,
+        newAdmin.publicKey,
+        null,
+        0
+      );
+      console.log("Dummy mint created:", dummyMint.toBase58());
+    } catch (err) {
+      console.error("Failed to create mint:", err);
+      throw new Error("createMint failed, cannot proceed with test");
+    }
   
-    // 2. Create multisig-owned SPL token account at a PDA
-    const [patient1SplPda] = PublicKey.findProgramAddressSync(
+    // Validate dummyMint
+    if (!dummyMint || !(dummyMint instanceof PublicKey)) {
+      throw new Error("dummyMint is undefined or invalid");
+    }
+  
+    // Create multisig-owned SPL token account at a PDA
+    console.log("multisigPda:", multisigPda.toBase58());
+    const [patient1SplPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("patient_spl"), Buffer.from("CASE0001"), dummyMint.toBuffer(), multisigPda.toBuffer()],
       program.programId
     );
   
     // Initialize the patient's SPL token account if it doesn't exist
-    const accountInfo = await provider.connection.getAccountInfo(patient1SplPda);
+    const accountInfo = await provider.connection.getAccountInfo(patient1SplPDA);
     if (!accountInfo) {
       await program.methods
         .initializePatientSplAccount("CASE0001", dummyMint)
@@ -1947,7 +1965,7 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
           payer: newAdmin.publicKey,
           patientCase: patient1CasePDA,
           multisigPda: multisigPda,
-          patientSplAta: patient1SplPda,
+          patientSplAta: patient1SplPDA,
           mint: dummyMint,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -1957,12 +1975,12 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
         .rpc();
     }
   
-    // 3. Create facility's ATA for the same mint
+    // Create facility's ATA for the same mint
     const facilitySplAta1 = await getOrCreateAssociatedTokenAccount(
       provider.connection,
-      newAdmin, // payer
+      newAdmin,
       dummyMint,
-      facility_address.publicKey // owner
+      facility_address.publicKey
     );
   
     // Call the releaseFunds instruction
@@ -1983,11 +2001,16 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
         verifier3Pda: verifier3PDA,
         facilityAddress: facility_address.publicKey,
         multisigPda: multisigPda,
+        patientSplAta: patient1SplPDA,
+        patientSplAta1: SystemProgram.programId,
+        facilitySplAta1: facilitySplAta1.address,
+        patientSplAta2: SystemProgram.programId,
+        facilitySplAta2: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .remainingAccounts([
-        { pubkey: patient1SplPda, isWritable: true, isSigner: false },
+        { pubkey: patient1SplPDA, isWritable: true, isSigner: false },
         { pubkey: facilitySplAta1.address, isWritable: true, isSigner: false },
         { pubkey: dummyMint, isWritable: false, isSigner: false },
       ])
@@ -1996,14 +2019,13 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
   
     // Assert: Escrow should be empty or only contain rent-exempt amount
     const escrowBalance = await provider.connection.getBalance(patient1EscrowPDA);
-    expect(escrowBalance).to.be.lte(1_000_000); // Only rent-exempt left or closed
+    expect(escrowBalance).to.be.lte(890880); // Adjust for rent-exempt balance
   
     // Check SPL token accounts
-    const patientSpl1 = await getAccount(provider.connection, patient1SplPda);
+    const patientSpl1 = await getAccount(provider.connection, patient1SplPDA);
     const facilitySpl1 = await getAccount(provider.connection, facilitySplAta1.address);
     expect(Number(patientSpl1.amount)).to.eq(0);
   });
-
 
  // Test 21: Negative test, tries to release funds with 2 verifiers.
  it("Test 21- Fails to release funds if not enough verifiers sign", async () => {
@@ -2067,6 +2089,8 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
         facilitySplAta1: dummyAccount,
         patientSplAta2: dummyAccount,
         facilitySplAta2: dummyAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       .signers([newAdmin, verifier1Keypair, verifier2Keypair]) // Only 2 verifiers
       .rpc()
