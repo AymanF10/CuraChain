@@ -894,7 +894,7 @@ describe("CuraChain", () => {
 
 
   //Verifying Patient 3 Case
-  it(" Test 9- 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Patient Case Account Is Not Verified", async () => {
+  it("Test 9- 4 Verifiers (2, 3, 5, 6) On Patient 3 Case: 3 Vote a NO, 1 vote a YES. Patient Case Account Is Not Verified", async () => {
     // Let's Get The Patient PDAs
     const [patient3CasePDA, patient3CaseBump] =
       PublicKey.findProgramAddressSync(
