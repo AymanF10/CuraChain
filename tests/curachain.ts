@@ -7,10 +7,16 @@ import {
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import chai, { assert, expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { createMint, getOrCreateAssociatedTokenAccount, getAssociatedTokenAddress, mintTo, getAccount, TOKEN_PROGRAM_ID, getMinimumBalanceForRentExemptAccount, ACCOUNT_SIZE, createInitializeAccountInstruction } from "@solana/spl-token";
+// Add Metaplex imports for NFT minting
+import { PublicKey as MetaplexPublicKey } from "@solana/web3.js";
+// Add this instead:
+const MPL_TOKEN_METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+// import { Metadata } from '@metaplex-foundation/mpl-token-metadata';
 
 chai.use(chaiAsPromised);
 
@@ -1522,10 +1528,15 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       patientEscrow: patientEscrowPDA,
       donorAccount: donorAccountPDA,
       multisigPda: multisigPda,
+      mint: new PublicKey("11111111111111111111111111111111"),
       donorAta: null,
       patientAta: null,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
+      donorNftMint: null,
+      donorNftAta: null,
+      donorNftMetadata: null,
+      tokenMetadataProgram: null,
     })
     .signers([testDonor])
     .rpc();
@@ -1537,327 +1548,245 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
 
 
   //Donations to Verified Case
-  it("Test 17- 2 Donors Contributing Funds To A Verified Case I", async () => {
-    // Let's get the various PDAs
-    const [patient1CasePDA, patient1CaseBump] =
-      PublicKey.findProgramAddressSync(
-        [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
-        program.programId
-      );
-    const [patient1EscrowPDA, patient1EscrowBump] =
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("patient_escrow"),
-          Buffer.from("CASE0001"),
-          patient1CasePDA.toBuffer(),
-        ],
-        program.programId
-      );
-
-    const [caseCounterPDA, caseCounterBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("case_counter")],
-      program.programId
-    );
-    const [caseLookupPDA, caseLookupBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
-      program.programId
-    );
-
-    const [donor1PDA, donor1Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-    const [donor2PDA, donor2Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("donor"), donor2Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-
-    const [multisigPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("multisig")],
-      program.programId
-    );
-
-    // Every created PDA account in solana needs a rent-exempt.
-    //So, i get the rent exempt for an account with 0 data, which is 890880 lamports
-    // This is to get the actual lamports in the escrow PDA account excluding the rent-exempt
-    const rentExempt =
-      await program.provider.connection.getMinimumBalanceForRentExemption(0);
-
-    // Let's let Donor 1 Call Donate Instructions
-    await program.methods
-      .donate("CASE0001", new BN(15000), new PublicKey("11111111111111111111111111111111"))
-      .accounts({
-        donor: donor1Keypair.publicKey,
-        caseLookup: caseLookupPDA,
-        patientCase: patient1CasePDA,
-        patientEscrow: patient1EscrowPDA,
-        donorAccount: donor1PDA,
-        multisigPda: multisigPda,
-        mint: new PublicKey("11111111111111111111111111111111"),
-        donorAta: null,
-        patientAta: null,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([donor1Keypair])
-      .rpc();
-
-    // Let Donor 2 Contribute 4500 to Verified Case I
-    await program.methods
-      .donate("CASE0001", new BN(4500), new PublicKey("11111111111111111111111111111111"))
-      .accounts({
-        donor: donor2Keypair.publicKey,
-        caseLookup: caseLookupPDA,
-        patientCase: patient1CasePDA,
-        patientEscrow: patient1EscrowPDA,
-        donorAccount: donor2PDA,
-        multisigPda: multisigPda,
-        mint: new PublicKey("11111111111111111111111111111111"),
-        donorAta: null,
-        patientAta: null,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([donor2Keypair])
-      .rpc();
-
-    // Let Donor 1 contribute another 100 To Case I
-    await program.methods
-      .donate("CASE0001", new BN(100), new PublicKey("11111111111111111111111111111111"))
-      .accounts({
-        donor: donor1Keypair.publicKey,
-        caseLookup: caseLookupPDA,
-        patientCase: patient1CasePDA,
-        patientEscrow: patient1EscrowPDA,
-        donorAccount: donor1PDA,
-        multisigPda: multisigPda,
-        mint: new PublicKey("11111111111111111111111111111111"),
-        donorAta: null,
-        patientAta: null,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([donor1Keypair])
-      .rpc();
-
-    // Get Data of donors, patientCase and Escrow
-    const patientCase1Data = await program.account.patientCase.fetch(
-      patient1CasePDA
-    );
-    const donor1Data = await program.account.donorInfo.fetch(donor1PDA);
-    const donor2Data = await program.account.donorInfo.fetch(donor2PDA);
-
-    // Donor 1 has made 15000 + 100 contributions, whereas Donor 2 has made 4500
-    expect(donor1Data.totalDonations.toNumber()).eq(15100);
-    expect(donor2Data.totalDonations.toNumber()).eq(4500);
-    // Patience Total Raised Updated
-    expect(patientCase1Data.totalRaised.toNumber()).eq(19600);
-    // Patience Escrow PDA receives Amount;
-    const escrowPDAbalance = await program.provider.connection.getBalance(
-      patient1EscrowPDA
-    );
-    // donated funds + rent-exempt value = total lamports in escrowPDA account.
-    // 19600 + 890880 = 910480 lamports
-    expect(escrowPDAbalance).eq(910480);
-
-    // Escrow PDA balance excluding the rent-Exempt = the donated funds
-    const escrowPDAbalanceActual = escrowPDAbalance - rentExempt;
-
-    expect(escrowPDAbalanceActual).eq(19600);
+  it('Test 17- 2 Donors Contributing Funds To A Verified Case I', async () => {
+    const donor1 = donor1Keypair;
+    const donor2 = anchor.web3.Keypair.generate();
+    await airdropSol(provider, donor2.publicKey, 2);
+    const caseId = "CASE0001";
+    const patient = patient1Keypair;
+    const [patientCasePDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("patient"), patient.publicKey.toBuffer()
+    ], program.programId);
+    const [caseLookupPDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("case_lookup"), Buffer.from(caseId)
+    ], program.programId);
+    const [patientEscrowPDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("patient_escrow"), Buffer.from(caseId), patientCasePDA.toBuffer()
+    ], program.programId);
+    const [donorAccountPDA1] = PublicKey.findProgramAddressSync([
+      Buffer.from("donor"), donor1.publicKey.toBuffer()
+    ], program.programId);
+    const [donorAccountPDA2] = PublicKey.findProgramAddressSync([
+      Buffer.from("donor"), donor2.publicKey.toBuffer()
+    ], program.programId);
+    const [multisigPda] = PublicKey.findProgramAddressSync([
+      Buffer.from("multisig")
+    ], program.programId);
+  
+    // Verify CASE0001 is already submitted and verified
+    const patientCaseData = await program.account.patientCase.fetch(patientCasePDA);
+    expect(patientCaseData.isVerified).to.be.true;
+    expect(patientCaseData.caseId).to.equal(caseId);
+  
+    // Donor 1 donation
+    await donateWithNft({
+      program,
+      provider,
+      donorKeypair: donor1,
+      caseId,
+      amount: new BN(15000),
+      mint: new PublicKey("11111111111111111111111111111111"),
+      caseLookupPDA,
+      patientCasePDA,
+      patientEscrowPDA,
+      donorAccountPDA: donorAccountPDA1,
+      multisigPda
+    });
+  
+    // Donor 2 donation
+    await donateWithNft({
+      program,
+      provider,
+      donorKeypair: donor2,
+      caseId,
+      amount: new BN(10000),
+      mint: new PublicKey("11111111111111111111111111111111"),
+      caseLookupPDA,
+      patientCasePDA,
+      patientEscrowPDA,
+      donorAccountPDA: donorAccountPDA2,
+      multisigPda
+    });
+  
+    // Verify NFTs were minted
+    const { nftMint: nftMint1 } = await prepareNftAccounts(provider.connection, donor1, donor1.publicKey);
+    const { nftMint: nftMint2 } = await prepareNftAccounts(provider.connection, donor2, donor2.publicKey);
+    const nfts1 = await getNftTokenAccounts(provider.connection, donor1.publicKey, nftMint1);
+    const nfts2 = await getNftTokenAccounts(provider.connection, donor2.publicKey, nftMint2);
+    expect(nfts1.value.length).to.eq(1);
+    expect(nfts2.value.length).to.eq(1);
+    const uri1 = await fetchMetadataUri(provider.connection, nftMint1);
+    const uri2 = await fetchMetadataUri(provider.connection, nftMint2);
+    expect(uri1).to.include("total_donated=15000");
+    expect(uri2).to.include("total_donated=10000");
   });
 
-
-  //Donors Attempt To Contribute To An Unverified Case II or III, Must Fail
-  it("Test 18- Donors Attempt To Contribute To An Unverified Case II or III, Must Fail", async () => {
-    // Testing For Case II
-    const [patient2CasePDA, patient2CaseBump] =
-      PublicKey.findProgramAddressSync(
-        [Buffer.from("patient"), patient2Keypair.publicKey.toBuffer()],
-        program.programId
-      );
-    const [patient2EscrowPDA, patient2EscrowBump] =
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("patient_escrow"),
-          Buffer.from("CASE0002"),
-          patient2CasePDA.toBuffer(),
-        ],
-        program.programId
-      );
-
-    const [caseCounterPDA, caseCounterBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("case_counter")],
+// Test 18: Donors Attempt To Contribute To An Unverified Case II or III, Must Fail
+it("Test 18- Donors Attempt To Contribute To An Unverified Case II or III, Must Fail", async () => {
+  const [patient2CasePDA, patient2CaseBump] =
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("patient"), patient2Keypair.publicKey.toBuffer()],
       program.programId
     );
-    const [caseLookupPDA2, caseLookupBump2] = PublicKey.findProgramAddressSync(
-      [Buffer.from("case_lookup"), Buffer.from("CASE0002")],
+  const [patient2EscrowPDA, patient2EscrowBump] =
+    PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("patient_escrow"),
+        Buffer.from("CASE0002"),
+        patient2CasePDA.toBuffer(),
+      ],
       program.programId
     );
 
-    const [donor1PDA, donor1Bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
-      program.programId
-    );
+  const [caseLookupPDA2, caseLookupBump2] = PublicKey.findProgramAddressSync(
+    [Buffer.from("case_lookup"), Buffer.from("CASE0002")],
+    program.programId
+  );
 
-    const [multisigPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("multisig")],
-      program.programId
-    );
+  const [donor1PDA, donor1Bump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
+    program.programId
+  );
 
-    try {
-      await program.methods
-        .donate("CASE0002", new BN(30000), new PublicKey("11111111111111111111111111111111"))
-        .accounts({
-          donor: donor1Keypair.publicKey,
-          caseLookup: caseLookupPDA2,
-          patientCase: patient2CasePDA,
-          patientEscrow: patient2EscrowPDA,
-          donorAccount: donor1PDA,
-          multisigPda: multisigPda,
-          mint: new PublicKey("11111111111111111111111111111111"),
-          donorAta: null,
-          patientAta: null,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([donor1Keypair])
-        .rpc();
-      // If we get here, something went wrong - should have thrown an error
-      throw new Error("Expected UnverifiedCase error");
-    } catch (err) {
-      // This is the expected path - donation should fail
-      if (err.error && err.error.errorCode) {
-        expect(err.error.errorCode.code).to.equal("UnverifiedCase");
-      } else {
-        throw err;
-      }
+  const [multisigPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("multisig")],
+    program.programId
+  );
+
+  try {
+    await donateWithoutNft({
+      program,
+      donorKeypair: donor1Keypair,
+      caseId: "CASE0002",
+      amount: new BN(30000),
+      mint: new PublicKey("11111111111111111111111111111111"),
+      caseLookupPDA: caseLookupPDA2,
+      patientCasePDA: patient2CasePDA,
+      patientEscrowPDA: patient2EscrowPDA,
+      donorAccountPDA: donor1PDA,
+      multisigPda
+    });
+    throw new Error("Expected UnverifiedCase error");
+  } catch (err) {
+    if (err.error && err.error.errorCode) {
+      expect(err.error.errorCode.code).to.equal("UnverifiedCase");
+    } else {
+      throw err;
     }
+  }
+});
+
+// Test 19: Donors can donate both SOL and SPL tokens to Patient 1's case and track donations
+it("Test 19- Donors can donate both SOL and SPL tokens to Patient 1's case and track donations", async () => {
+  const testPayer = anchor.web3.Keypair.generate();
+  await airdropSol(provider, testPayer.publicKey, 2);
+
+  const mintAuthority = Keypair.generate();
+  const splMint = await createMint(
+    provider.connection,
+    testPayer,
+    mintAuthority.publicKey,
+    null,
+    6
+  );
+  const donor1Ata = await getOrCreateAssociatedTokenAccount(
+    provider.connection,
+    testPayer,
+    splMint,
+    donor1Keypair.publicKey
+  );
+  await mintTo(
+    provider.connection,
+    testPayer,
+    splMint,
+    donor1Ata.address,
+    mintAuthority,
+    1_000_000_000
+  );
+
+  const [patient1CasePDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
+    program.programId
+  );
+  const [caseLookupPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
+    program.programId
+  );
+  const [patient1EscrowPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("patient_escrow"), Buffer.from("CASE0001"), patient1CasePDA.toBuffer()],
+    program.programId
+  );
+  const [donor1PDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
+    program.programId
+  );
+  const [multisigPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("multisig")],
+    program.programId
+  );
+
+  await airdropSol(provider, donor1Keypair.publicKey, 5);
+  await donateWithoutNft({
+    program,
+    donorKeypair: donor1Keypair,
+    caseId: "CASE0001",
+    amount: new BN(1000),
+    mint: new PublicKey("11111111111111111111111111111111"),
+    caseLookupPDA,
+    patientCasePDA: patient1CasePDA,
+    patientEscrowPDA: patient1EscrowPDA,
+    donorAccountPDA: donor1PDA,
+    multisigPda
   });
 
+  const [patient1SplPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("patient_spl"), Buffer.from("CASE0001"), splMint.toBuffer(), multisigPda.toBuffer()],
+    program.programId
+  );
 
-   //  SPL + SOL Donation Test 
-   it("Test 19- Donors can donate both SOL and SPL tokens to Patient 1's case and track donations", async () => {
-    // Setup: Create a new test SPL mint
-    const testPayer = anchor.web3.Keypair.generate();
-    await airdropSol(provider, testPayer.publicKey, 2);
+  await program.methods
+    .initializePatientSplAccount("CASE0001", splMint)
+    .accounts({
+      payer: testPayer.publicKey,
+      patientCase: patient1CasePDA,
+      multisigPda: multisigPda,
+      patientSplAta: patient1SplPda,
+      mint: splMint,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+    })
+    .signers([testPayer])
+    .rpc();
 
-    const mintAuthority = Keypair.generate();
-    const splMint = await createMint(
-      provider.connection,
-      testPayer, // payer (Keypair)
-      mintAuthority.publicKey, // mint authority (PublicKey)
-      null, // freeze authority (PublicKey or null)
-      6
-    );
-    // Create donor1's ATA for SPL
-    const donor1Ata = await getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      testPayer, // payer (Keypair)
-      splMint,
-      donor1Keypair.publicKey // owner (PublicKey)
-    );
-    // Mint SPL tokens to donor1
-    await mintTo(
-      provider.connection,
-      testPayer, // payer (Keypair)
-      splMint,
-      donor1Ata.address,
-      mintAuthority, // authority (Keypair)
-      1_000_000_000 // 1000 tokens (6 decimals)
-    );
+  await program.methods
+    .donate("CASE0001", new BN(500_000), splMint)
+    .accounts({
+      donor: donor1Keypair.publicKey,
+      caseLookup: caseLookupPDA,
+      patientCase: patient1CasePDA,
+      patientEscrow: patient1EscrowPDA,
+      donorAccount: donor1PDA,
+      donorAta: donor1Ata.address,
+      patientAta: patient1SplPda,
+      multisigPda: multisigPda,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+      mint: splMint,
+      donorNftMint: null,
+      donorNftAta: null,
+      donorNftMetadata: null,
+      tokenMetadataProgram: null,
+    })
+    .signers([donor1Keypair])
+    .rpc();
 
-    // Find all required PDAs
-    const [patient1CasePDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-    const [caseLookupPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("case_lookup"), Buffer.from("CASE0001")],
-      program.programId
-    );
-    const [patient1EscrowPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("patient_escrow"), Buffer.from("CASE0001"), patient1CasePDA.toBuffer()],
-      program.programId
-    );
-    const [donor1PDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("donor"), donor1Keypair.publicKey.toBuffer()],
-      program.programId
-    );
-    const [multisigPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("multisig")],
-      program.programId
-    );
-
-    // For SOL donation
-    await program.methods
-      .donate("CASE0001", new BN(1000), new PublicKey("11111111111111111111111111111111"))
-      .accounts({
-        donor: donor1Keypair.publicKey,
-        caseLookup: caseLookupPDA,
-        patientCase: patient1CasePDA,
-        patientEscrow: patient1EscrowPDA,
-        donorAccount: donor1PDA,
-        multisigPda: multisigPda,
-        mint: new PublicKey("11111111111111111111111111111111"),
-        donorAta: null,
-        patientAta: null,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([donor1Keypair])
-      .rpc();
-
-    // Initialize SPL token account with correct PDA derivation
-    const [patient1SplPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("patient_spl"), Buffer.from("CASE0001"), splMint.toBuffer(), multisigPda.toBuffer()],
-      program.programId
-    );
-
-    // Initialize the patient's SPL token account
-    await program.methods
-      .initializePatientSplAccount("CASE0001", splMint)
-      .accounts({
-        payer: testPayer.publicKey,
-        patientCase: patient1CasePDA,
-        multisigPda: multisigPda,
-        patientSplAta: patient1SplPda,
-        mint: splMint,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      })
-      .signers([testPayer])
-      .rpc();
-
-    // For SPL token donation
-    await program.methods
-      .donate("CASE0001", new BN(500_000), splMint)
-      .accounts({
-        donor: donor1Keypair.publicKey,
-        caseLookup: caseLookupPDA,
-        patientCase: patient1CasePDA,
-        patientEscrow: patient1EscrowPDA,
-        donorAccount: donor1PDA,
-        donorAta: donor1Ata.address,
-        patientAta: patient1SplPda,
-        multisigPda: multisigPda,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-        mint: splMint,
-      })
-      .signers([donor1Keypair])
-      .rpc();
-
-    // Fetch patient case and check donation tracking
-    const patient1CaseData = await program.account.patientCase.fetch(patient1CasePDA);
-    expect(patient1CaseData.totalRaised.toNumber()).to.be.gte(1000);
-    expect(patient1CaseData.splDonations.length).to.be.gte(1);
-    expect(patient1CaseData.splDonations[0].mint.toBase58()).to.equal(splMint.toBase58());
-    expect(patient1CaseData.splDonations[0].amount.toNumber()).to.equal(500_000);
-
-  });
-
-
+  const patient1CaseData = await program.account.patientCase.fetch(patient1CasePDA);
+  expect(patient1CaseData.totalRaised.toNumber()).to.be.gte(1000);
+  expect(patient1CaseData.splDonations.length).to.be.gte(1);
+  expect(patient1CaseData.splDonations[0].mint.toBase58()).to.equal(splMint.toBase58());
+  expect(patient1CaseData.splDonations[0].amount.toNumber()).to.equal(500_000);
+});
   //Authorized Multisig Can Release Funds From Escrow To Treatment Wallet
   it("Test 20 - Only authorized multisig (admin + 3 verifiers) can release funds from escrow", async () => {
     // Derive all required PDAs
@@ -2210,5 +2139,355 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
     // Skipping time warp as no public warp method is available in this environment.
   }
 
- 
+  // Helper to derive Metaplex metadata PDA (no Metaplex JS)
+  function findMetadataPda(mint: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync([
+      Buffer.from("metadata"),
+      MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mint.toBuffer(),
+    ], MPL_TOKEN_METADATA_PROGRAM_ID);
+  }
+
+  // Helper to create NFT mint, ATA, and metadata PDA for a donor (no Metaplex JS)
+  async function prepareNftAccounts(connection, donorKeypair, donorPubkey) {
+    // Use donorKeypair as both payer and mint authority
+    const nftMint = await createMint(connection, donorKeypair, donorKeypair.publicKey, null, 0);
+    const donorNftAta = await getOrCreateAssociatedTokenAccount(connection, donorKeypair, nftMint, donorPubkey);
+    const [metadataPda] = findMetadataPda(nftMint);
+    return { nftMint, donorNftAta, metadataPda };
+  }
+
+  // --- DONATION HELPERS ---
+
+  /**
+   * Make a donation and mint a unique NFT to the donor.
+   * Passes all NFT accounts so the on-chain logic mints the NFT.
+   */
+  async function donateWithNft({
+    program, provider, donorKeypair, caseId, amount, mint,
+    caseLookupPDA, patientCasePDA, patientEscrowPDA, donorAccountPDA, multisigPda
+  }) {
+    try {
+      const { nftMint, donorNftAta, metadataPda } = await prepareNftAccounts(provider.connection, donorKeypair, donorKeypair.publicKey);
+      const tx = new anchor.web3.Transaction();
+      tx.add(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }) // Increase compute budget
+      );
+      tx.add(
+        await program.methods
+          .donate(caseId, amount, mint)
+          .accounts({
+            donor: donorKeypair.publicKey,
+            caseLookup: caseLookupPDA,
+            patientCase: patientCasePDA,
+            patientEscrow: patientEscrowPDA,
+            donorAccount: donorAccountPDA,
+            multisigPda: multisigPda,
+            mint: mint,
+            donorAta: null,
+            patientAta: null,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            donorNftMint: nftMint,
+            donorNftAta: donorNftAta.address,
+            donorNftMetadata: metadataPda,
+            tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          })
+          .instruction()
+      );
+      await provider.sendAndConfirm(tx, [donorKeypair]);
+    } catch (err) {
+      console.error("Transaction failed:", err);
+      if (err.getLogs && provider.connection) {
+        const logs = await err.getLogs(provider.connection);
+        console.error("Transaction logs:", logs);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Make a donation WITHOUT minting an NFT.
+   * Does NOT pass NFT accounts, so the on-chain logic skips NFT minting.
+   */
+  async function donateWithoutNft({
+    program, donorKeypair, caseId, amount, mint,
+    caseLookupPDA, patientCasePDA, patientEscrowPDA, donorAccountPDA, multisigPda
+  }) {
+    await program.methods
+      .donate(caseId, amount, mint)
+      .accounts({
+        donor: donorKeypair.publicKey,
+        caseLookup: caseLookupPDA,
+        patientCase: patientCasePDA,
+        patientEscrow: patientEscrowPDA,
+        donorAccount: donorAccountPDA,
+        multisigPda: multisigPda,
+        mint: mint,
+        donorAta: null,
+        patientAta: null,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        donorNftMint: null,
+        donorNftAta: null,
+        donorNftMetadata: null,
+        tokenMetadataProgram: null,
+      })
+      .signers([donorKeypair])
+      .rpc();
+  }
+
+
+  // Helper to fetch NFT token accounts for a donor
+  async function getNftTokenAccounts(connection, owner, mint) {
+    return await connection.getParsedTokenAccountsByOwner(owner, { mint });
+  }
+
+  // --- NFT MINTING & METADATA TESTS ---
+  describe('NFT Minting and Metadata Logic', () => {
+    it('Mints NFT on first donation, updates metadata on subsequent donations, and mints new NFT for new case', async () => {
+      const donor = donor1Keypair;
+      const caseId = "CASE0001";
+      const [patientCasePDA] = PublicKey.findProgramAddressSync([
+        Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()
+      ], program.programId);
+      const [caseLookupPDA] = PublicKey.findProgramAddressSync([
+        Buffer.from("case_lookup"), Buffer.from(caseId)
+      ], program.programId);
+      const [patientEscrowPDA] = PublicKey.findProgramAddressSync([
+        Buffer.from("patient_escrow"), Buffer.from(caseId), patientCasePDA.toBuffer()
+      ], program.programId);
+      const [donorAccountPDA] = PublicKey.findProgramAddressSync([
+        Buffer.from("donor"), donor.publicKey.toBuffer()
+      ], program.programId);
+      const [multisigPda] = PublicKey.findProgramAddressSync([
+        Buffer.from("multisig")
+      ], program.programId);
+  
+      // 1. First donation: should mint NFT
+      await donateWithNft({
+        program,
+        provider,
+        donorKeypair: donor,
+        caseId,
+        amount: new BN(10000),
+        mint: new PublicKey("11111111111111111111111111111111"),
+        caseLookupPDA,
+        patientCasePDA,
+        patientEscrowPDA,
+        donorAccountPDA,
+        multisigPda
+      });
+      const { nftMint } = await prepareNftAccounts(provider.connection, donor, donor.publicKey);
+      const nfts = await getNftTokenAccounts(provider.connection, donor.publicKey, nftMint);
+      expect(nfts.value.length).to.eq(1);
+      const uri = await fetchMetadataUri(provider.connection, nftMint);
+      expect(uri).to.include("total_donated=10000");
+  
+      // 2. Second donation to same case: should update metadata, not mint new NFT
+      await donateWithNft({
+        program,
+        provider,
+        donorKeypair: donor,
+        caseId,
+        amount: new BN(5000),
+        mint: new PublicKey("11111111111111111111111111111111"),
+        caseLookupPDA,
+        patientCasePDA,
+        patientEscrowPDA,
+        donorAccountPDA,
+        multisigPda
+      });
+      const nfts2 = await getNftTokenAccounts(provider.connection, donor.publicKey, nftMint);
+      expect(nfts2.value.length).to.eq(1);
+      const uri2 = await fetchMetadataUri(provider.connection, nftMint);
+      expect(uri2).to.include("total_donated=15000");
+  
+      // 3. Donation to a new case: should mint a new NFT
+      const testPatient = anchor.web3.Keypair.generate();
+      await airdropSol(provider, testPatient.publicKey, 2);
+      const [testCaseCounterPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("case_counter")], program.programId
+      );
+      const caseCounterAccount = await program.account.caseCounter.fetch(testCaseCounterPDA);
+      const newCaseId = `CASE${String(caseCounterAccount.currentId.toNumber() + 1).padStart(4, '0')}`;
+      const [patientCasePDA2] = PublicKey.findProgramAddressSync([
+        Buffer.from("patient"), testPatient.publicKey.toBuffer()
+      ], program.programId);
+      const [caseLookupPDA2] = PublicKey.findProgramAddressSync([
+        Buffer.from("case_lookup"), Buffer.from(newCaseId)
+      ], program.programId);
+      const [patientEscrowPDA2] = PublicKey.findProgramAddressSync([
+        Buffer.from("patient_escrow"), Buffer.from(newCaseId), patientCasePDA2.toBuffer()
+      ], program.programId);
+      const [donorAccountPDA2] = PublicKey.findProgramAddressSync([
+        Buffer.from("donor"), donor.publicKey.toBuffer()
+      ], program.programId);
+  
+      // Submit new case
+      await program.methods
+        .submitCases("Test case for NFT donation", new BN(10000), "testlink")
+        .accountsPartial({
+          patient: testPatient.publicKey,
+          patientCase: patientCasePDA2,
+          caseCounter: testCaseCounterPDA,
+          caseLookup: caseLookupPDA2,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([testPatient])
+        .rpc();
+  
+      // Admin override to verify the case
+      const [adminPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("admin"), newAdmin.publicKey.toBuffer()], program.programId
+      );
+      await warpForwardByDays(11);
+      await program.methods
+        .adminOverrideCase(newCaseId, true)
+        .accountsPartial({
+          admin: newAdmin.publicKey,
+          adminAccount: adminPDA,
+          caseLookup: caseLookupPDA2,
+          patientCase: patientCasePDA2,
+          patientEscrow: patientEscrowPDA2,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([newAdmin])
+        .rpc();
+  
+      // Donate to new case
+      await donateWithNft({
+        program,
+        provider,
+        donorKeypair: donor,
+        caseId: newCaseId,
+        amount: new BN(20000),
+        mint: new PublicKey("11111111111111111111111111111111"),
+        caseLookupPDA: caseLookupPDA2,
+        patientCasePDA: patientCasePDA2,
+        patientEscrowPDA: patientEscrowPDA2,
+        donorAccountPDA: donorAccountPDA2,
+        multisigPda
+      });
+  
+      const { nftMint: nftMint2 } = await prepareNftAccounts(provider.connection, donor, donor.publicKey);
+      const nfts3 = await getNftTokenAccounts(provider.connection, donor.publicKey, nftMint2);
+      expect(nfts3.value.length).to.eq(1);
+      const uri3 = await fetchMetadataUri(provider.connection, nftMint2);
+      expect(uri3).to.include("total_donated=20000");
+    });
+  });
+  // Test 25- NFT is minted on first donation, metadata is updated on subsequent donations, and a new NFT is minted for a new case
+  it("Test 25- NFT is minted on first donation, metadata is updated on subsequent donations, and a new NFT is minted for a new case", async () => {
+    // Setup: Donor donates to CASE0001
+    const donor = donor1Keypair;
+    const caseId = "CASE0001";
+    const [patientCasePDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("patient"), patient1Keypair.publicKey.toBuffer()
+    ], program.programId);
+    const [caseLookupPDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("case_lookup"), Buffer.from(caseId)
+    ], program.programId);
+    const [patientEscrowPDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("patient_escrow"), Buffer.from(caseId), patientCasePDA.toBuffer()
+    ], program.programId);
+    const [donorAccountPDA] = PublicKey.findProgramAddressSync([
+      Buffer.from("donor"), donor.publicKey.toBuffer()
+    ], program.programId);
+    const [multisigPda] = PublicKey.findProgramAddressSync([
+      Buffer.from("multisig")
+    ], program.programId);
+
+    // 1. First donation: should mint NFT
+    await donateWithNft({
+      program,
+      provider,
+      donorKeypair: donor,
+      caseId,
+      amount: new BN(10000),
+      mint: new PublicKey("11111111111111111111111111111111"),
+      caseLookupPDA,
+      patientCasePDA,
+      patientEscrowPDA,
+      donorAccountPDA,
+      multisigPda
+    });
+    // Find the NFT mint (from the helper)
+    const { nftMint } = await prepareNftAccounts(provider.connection, donor, donor.publicKey);
+    // Check NFT token account
+    const nfts = await getNftTokenAccounts(provider.connection, donor.publicKey, nftMint);
+    expect(nfts.value.length).to.eq(1);
+    // Check metadata
+    const uri = await fetchMetadataUri(provider.connection, nftMint);
+    expect(uri).to.include("total_donated=10000");
+
+    // 2. Second donation to same case: should update metadata, not mint new NFT
+    await donateWithNft({
+      program,
+      provider,
+      donorKeypair: donor,
+      caseId,
+      amount: new BN(5000),
+      mint: new PublicKey("11111111111111111111111111111111"),
+      caseLookupPDA,
+      patientCasePDA,
+      patientEscrowPDA,
+      donorAccountPDA,
+      multisigPda
+    });
+    // NFT token account should still be 1
+    const nfts2 = await getNftTokenAccounts(provider.connection, donor.publicKey, nftMint);
+    expect(nfts2.value.length).to.eq(1);
+    // Metadata should be updated
+    const uri2 = await fetchMetadataUri(provider.connection, nftMint);
+    expect(uri2).to.include("total_donated=15000");
+
+    // 3. Donation to a new case: should mint a new NFT
+    const newCaseId = "CASE0002";
+    const [patientCasePDA2] = PublicKey.findProgramAddressSync([
+      Buffer.from("patient"), patient2Keypair.publicKey.toBuffer()
+    ], program.programId);
+    const [caseLookupPDA2] = PublicKey.findProgramAddressSync([
+      Buffer.from("case_lookup"), Buffer.from(newCaseId)
+    ], program.programId);
+    const [patientEscrowPDA2] = PublicKey.findProgramAddressSync([
+      Buffer.from("patient_escrow"), Buffer.from(newCaseId), patientCasePDA2.toBuffer()
+    ], program.programId);
+    const [donorAccountPDA2] = PublicKey.findProgramAddressSync([
+      Buffer.from("donor"), donor.publicKey.toBuffer()
+    ], program.programId);
+    await donateWithNft({
+      program,
+      provider,
+      donorKeypair: donor,
+      caseId: newCaseId,
+      amount: new BN(20000),
+      mint: new PublicKey("11111111111111111111111111111111"),
+      caseLookupPDA: caseLookupPDA2,
+      patientCasePDA: patientCasePDA2,
+      patientEscrowPDA: patientEscrowPDA2,
+      donorAccountPDA: donorAccountPDA2,
+      multisigPda
+    });
+    // Find the new NFT mint
+    const { nftMint: nftMint2 } = await prepareNftAccounts(provider.connection, donor, donor.publicKey);
+    const nfts3 = await getNftTokenAccounts(provider.connection, donor.publicKey, nftMint2);
+    expect(nfts3.value.length).to.eq(1);
+    const uri3 = await fetchMetadataUri(provider.connection, nftMint2);
+    expect(uri3).to.include("total_donated=20000");
+  });
+
+  // Helper to fetch NFT metadata URI directly from the account data
+  async function fetchMetadataUri(connection, mint) {
+    const [metadataPda] = findMetadataPda(mint);
+    const accountInfo = await connection.getAccountInfo(metadataPda);
+    if (!accountInfo) throw new Error('Metadata account not found');
+    // The URI is at a fixed offset in the Metaplex metadata account (starts at byte 1 + 32 + 32 + 4 + 32 + 4 = 105, length 200)
+    // This is a hacky but effective way to extract the URI string for test assertions
+    const uriStart = 1 + 32 + 32 + 4 + 32 + 4;
+    const uriEnd = uriStart + 200;
+    const uriBuf = accountInfo.data.slice(uriStart, uriEnd);
+    return uriBuf.toString('utf8').replace(/\0+$/, '');
+  }
 });

@@ -318,6 +318,23 @@ pub struct Donation<'info> {
 
     /// The mint for SPL token donations
     pub mint: Option<AccountInfo<'info>>,
+
+    /// NFT mint for donor (created by client, passed in)
+    #[account(mut)]
+    pub donor_nft_mint: Option<AccountInfo<'info>>,
+
+    /// Donor's associated token account for the NFT
+    #[account(mut)]
+    pub donor_nft_ata: Option<AccountInfo<'info>>,
+
+    /// CHECK: Metaplex metadata account PDA for the NFT
+    #[account(mut)]
+    pub donor_nft_metadata: Option<AccountInfo<'info>>,
+
+    /// CHECK: Metaplex Token Metadata program
+    pub token_metadata_program: Option<AccountInfo<'info>>,
+
+    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
