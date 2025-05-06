@@ -317,7 +317,7 @@ pub struct Donation<'info> {
     pub multisig_pda: AccountInfo<'info>,
 
     /// The mint for SPL token donations
-    pub mint: Option<InterfaceAccount<'info, Mint>>,
+    pub mint: Option<AccountInfo<'info>>,
 }
 
 #[derive(Accounts)]

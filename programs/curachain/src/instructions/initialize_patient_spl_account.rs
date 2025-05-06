@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{TokenInterface, Mint, initialize_account, InitializeAccount};
+use crate::states::errors::CuraChainError;
 
 // Constants
 const TOKEN_ACCOUNT_SIZE: u64 = 165; // Standard size for a token account (TokenAccount::LEN from spl_token)
@@ -77,6 +78,11 @@ pub fn initialize_patient_spl_account(
     };
     let cpi_ctx = CpiContext::new_with_signer(token_program, cpi_accounts, signer);
     initialize_account(cpi_ctx)?;
+
+    // Verify the seeds used for the patient_spl_ata account to ensure they match the expected values
+    let expected_pda = Pubkey::create_program_address(&[b"patient_spl", case_id.as_bytes(), mint.key().as_ref(), multisig_pda.key().as_ref(), &[bump]], ctx.program_id)
+        .map_err(|_| CuraChainError::ConstraintSeeds)?;
+    require!(patient_spl_ata.key() == expected_pda, CuraChainError::ConstraintSeeds);
 
     Ok(())
 }

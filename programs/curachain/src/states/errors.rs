@@ -101,4 +101,10 @@ pub enum CuraChainError{
 
     #[msg("Invalid Authority")]
     InvalidAuthority,
+
+    #[msg("Account Owned By Wrong Program")]
+    AccountOwnedByWrongProgram,
+
+    #[msg("A seeds constraint was violated.")]
+     ConstraintSeeds,
 }

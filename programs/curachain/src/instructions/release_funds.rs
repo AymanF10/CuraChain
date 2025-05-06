@@ -23,6 +23,9 @@ pub fn release_funds(ctx: Context<ReleaseFunds>, case_id: String) -> Result<()> 
         patient_case.voted_verifiers.contains(&ctx.accounts.verifier3_pda.key()),
         CuraChainError::NotEnoughVerifiers);
 
+    // Adjust the logic to ensure that the required number of verifiers have voted on the case
+    require!(patient_case.voted_verifiers.len() >= 3, CuraChainError::NotEnoughVerifiers);
+
     // We Get The Escrow Balance Including Rent-exempt
     let total_escrow_balance = patient_escrow.lamports();
     let rent = Rent::get()?;
