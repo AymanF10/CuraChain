@@ -31,8 +31,12 @@ pub fn donate_funds_to_patient_escrow(
 
         donor_info.donor_address = donor.key();
         donor_info.donor_bump = ctx.bumps.donor_account;
-        donor_info.total_donations = donor_info.total_donations.checked_add(amount_to_donate).ok_or(CuraChainError::OverflowError)?;
-        patient_case.total_raised = patient_case.total_raised.checked_add(amount_to_donate).ok_or(CuraChainError::OverflowError)?;
+        donor_info.total_donations = donor_info.total_donations
+            .checked_add(amount_to_donate)
+            .ok_or(CuraChainError::OverflowError)?;
+        patient_case.total_raised = patient_case.total_raised
+            .checked_add(amount_to_donate)
+            .ok_or(CuraChainError::OverflowError)?;
 
         let cpi_program = ctx.accounts.system_program.to_account_info();
         let cpi_accounts = Transfer {
@@ -43,24 +47,38 @@ pub fn donate_funds_to_patient_escrow(
         transfer(cpi_ctx, amount_to_donate)?;
     } else {
         // SPL donation logic
-        let donor_ata = ctx.accounts.donor_ata.as_ref().ok_or(CuraChainError::MissingDonorAta)?;
-        let patient_ata = ctx.accounts.patient_ata.as_ref().ok_or(CuraChainError::MissingPatientAta)?;
-        let mint_info = ctx.accounts.mint.as_ref().ok_or(CuraChainError::InvalidMint)?;
-        let mint_decimals = anchor_spl::token_interface::Mint::try_deserialize(&mut &mint_info.data.borrow()[..])?.decimals;
+        let donor_ata = ctx.accounts.donor_ata
+            .as_ref()
+            .ok_or(CuraChainError::MissingDonorAta)?;
+        let patient_ata = ctx.accounts.patient_ata
+            .as_ref()
+            .ok_or(CuraChainError::MissingPatientAta)?;
+        let mint_info = ctx.accounts.mint
+            .as_ref()
+            .ok_or(CuraChainError::InvalidMint)?;
+        let mint_decimals = anchor_spl::token_interface::Mint::try_deserialize(
+            &mut &mint_info.data.borrow()[..]
+        )?.decimals;
         require!(donor_ata.mint == mint_info.key(), CuraChainError::InvalidMint);
         require!(donor_ata.owner == ctx.accounts.donor.key(), CuraChainError::InvalidDonor);
         require!(patient_ata.mint == mint_info.key(), CuraChainError::InvalidMint);
-        require!(patient_ata.owner == ctx.accounts.multisig_pda.key(), CuraChainError::InvalidAuthority);
+        require!(
+            patient_ata.owner == ctx.accounts.multisig_pda.key(),
+            CuraChainError::InvalidAuthority
+        );
         let donor_ata_info = donor_ata.to_account_info();
         let patient_ata_info = patient_ata.to_account_info();
         let token_program = ctx.accounts.token_program.to_account_info();
         let donor = ctx.accounts.donor.to_account_info();
-        require!(donor_ata.to_account_info().owner == &token_program.key(), CuraChainError::AccountOwnedByWrongProgram);
+        require!(
+            donor_ata.to_account_info().owner == &token_program.key(),
+            CuraChainError::AccountOwnedByWrongProgram
+        );
         let cpi_accounts = TransferChecked {
             from: donor_ata_info,
             to: patient_ata_info,
             authority: donor.clone(),
-            mint: mint_info.clone(),
+            mint: mint_info.to_account_info(),
         };
         let cpi_ctx = CpiContext::new(token_program, cpi_accounts);
         transfer_checked(cpi_ctx, amount_to_donate, mint_decimals)?;
@@ -68,21 +86,34 @@ pub fn donate_funds_to_patient_escrow(
         let mut found = false;
         for rec in &mut patient_case.spl_donations {
             if rec.mint == mint_info.key() {
-                rec.amount = rec.amount.checked_add(amount_to_donate).ok_or(CuraChainError::OverflowError)?;
+                rec.amount = rec.amount
+                    .checked_add(amount_to_donate)
+                    .ok_or(CuraChainError::OverflowError)?;
                 found = true;
                 break;
             }
         }
         if !found {
             require!(patient_case.spl_donations.len() < 10, CuraChainError::OverflowError);
-            patient_case.spl_donations.push(SplDonationRecord { mint: mint_info.key(), amount: amount_to_donate });
+            patient_case.spl_donations.push(SplDonationRecord {
+                mint: mint_info.key(),
+                amount: amount_to_donate,
+            });
         }
-        let new_total_raised = patient_case.total_raised.checked_add(amount_to_donate).ok_or(CuraChainError::OverflowError)?;
-        msg!("[DEBUG] SPL donation: mint={}, amount_to_donate={}, prev_total_raised={}, new_total_raised={}", mint_info.key(), amount_to_donate, patient_case.total_raised, new_total_raised);
+        let new_total_raised = patient_case.total_raised
+            .checked_add(amount_to_donate)
+            .ok_or(CuraChainError::OverflowError)?;
+        msg!(
+            "[DEBUG] SPL donation: mint={}, amount_to_donate={}, prev_total_raised={}, new_total_raised={}",
+            mint_info.key(),
+            amount_to_donate,
+            patient_case.total_raised,
+            new_total_raised
+        );
         patient_case.total_raised = new_total_raised;
     }
 
-    if patient_case.total_raised >= patient_case.total_amount_needed + 1000000 {
+    if patient_case.total_raised >= patient_case.total_amount_needed + 1_000_000 {
         patient_case.case_funded = true;
     }
 
@@ -103,23 +134,28 @@ pub fn donate_funds_to_patient_escrow(
 
     // NFT minting logic (if all NFT accounts are provided)
     // Only mint if donor has not already received an NFT for this case
-    if let (Some(nft_mint_info), Some(nft_ata_info), Some(metadata), Some(token_metadata_program)) = (
+    if let (Some(nft_mint_info), Some(nft_ata_info), Some(metadata), Some(token_metadata_program), Some(update_authority_pda)) = (
         ctx.accounts.donor_nft_mint.as_ref(),
-        ctx.accounts.donor_nft_ata.as_ref(),
+        ctx.accounts.donor_ata.as_ref(),
         ctx.accounts.donor_nft_metadata.as_ref(),
         ctx.accounts.token_metadata_program.as_ref(),
+        ctx.accounts.update_authority_pda.as_ref(),
     ) {
+        msg!("Starting NFT minting for donor: {}, case_id: {}", donor.key(), case_id);
         // Clone case_id for NFT logic to avoid move error
         let case_id_for_nft = case_id.clone();
         let mut case_id_bytes = [0u8; 10];
         let case_id_bytes_src = case_id_for_nft.as_bytes();
-        case_id_bytes[..case_id_bytes_src.len().min(10)].copy_from_slice(&case_id_bytes_src[..case_id_bytes_src.len().min(10)]);
+        case_id_bytes[..case_id_bytes_src.len().min(10)]
+            .copy_from_slice(&case_id_bytes_src[..case_id_bytes_src.len().min(10)]);
         // Check if donor already has an NFT for this case
         let existing_nft = donor_info.nft_cases.iter_mut().find(|rec| rec.case_id == case_id_bytes);
         let mut new_total = amount_to_donate;
         if let Some(nft_record) = existing_nft {
             // Increment total_donated
-            nft_record.total_donated = nft_record.total_donated.checked_add(amount_to_donate).ok_or(CuraChainError::OverflowError)?;
+            nft_record.total_donated = nft_record.total_donated
+                .checked_add(amount_to_donate)
+                .ok_or(CuraChainError::OverflowError)?;
             new_total = nft_record.total_donated;
 
             // Update the NFT metadata with the new total
@@ -135,12 +171,12 @@ pub fn donate_funds_to_patient_escrow(
             };
             let cpi_accounts = UpdateMetadataAccountsV2 {
                 metadata: metadata.to_account_info(),
-                update_authority: ctx.accounts.donor.to_account_info(),
+                update_authority: update_authority_pda.to_account_info(),
             };
             let cpi_ctx = CpiContext::new(token_metadata_program.to_account_info(), cpi_accounts);
             update_metadata_accounts_v2(
                 cpi_ctx,
-                Some(ctx.accounts.donor.key()), // new_update_authority
+                Some(update_authority_pda.key()), // new_update_authority
                 Some(new_data), // data
                 None, // primary_sale_happened
                 Some(true), // is_mutable
@@ -150,8 +186,8 @@ pub fn donate_funds_to_patient_escrow(
             use anchor_spl::token::{MintTo, mint_to};
             // Mint 1 NFT to the donor
             let cpi_accounts = MintTo {
-                mint: nft_mint_info.clone(),
-                to: nft_ata_info.clone(),
+                mint: nft_mint_info.to_account_info(),
+                to: nft_ata_info.to_account_info(),
                 authority: ctx.accounts.donor.to_account_info(),
             };
             let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
@@ -173,10 +209,10 @@ pub fn donate_funds_to_patient_escrow(
             // Create the CPI accounts
             let metadata_accounts = CreateMetadataAccountsV3 {
                 metadata: metadata.to_account_info(),
-                mint: nft_mint_info.clone(),
+                mint: nft_mint_info.to_account_info(),
                 mint_authority: ctx.accounts.donor.to_account_info(),
                 payer: ctx.accounts.donor.to_account_info(),
-                update_authority: ctx.accounts.donor.to_account_info(),
+                update_authority: update_authority_pda.to_account_info(),
                 system_program: ctx.accounts.system_program.to_account_info(),
                 rent: ctx.accounts.rent.to_account_info(),
             };

@@ -323,13 +323,16 @@ pub struct Donation<'info> {
     #[account(mut)]
     pub donor_nft_mint: Option<AccountInfo<'info>>,
 
-    /// Donor's associated token account for the NFT
-    #[account(mut)]
-    pub donor_nft_ata: Option<AccountInfo<'info>>,
-
     /// CHECK: Metaplex metadata account PDA for the NFT
     #[account(mut)]
     pub donor_nft_metadata: Option<AccountInfo<'info>>,
+
+    /// CHECK: Program-derived update authority for NFT metadata
+    #[account(
+        seeds = [b"update_authority", donor.key().as_ref(), case_id.as_bytes()],
+        bump
+    )]
+    pub update_authority_pda: Option<AccountInfo<'info>>,
 
     /// CHECK: Metaplex Token Metadata program
     pub token_metadata_program: Option<AccountInfo<'info>>,

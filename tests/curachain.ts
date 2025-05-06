@@ -2169,6 +2169,10 @@ it("Test 19- Donors can donate both SOL and SPL tokens to Patient 1's case and t
   }) {
     try {
       const { nftMint, donorNftAta, metadataPda } = await prepareNftAccounts(provider.connection, donorKeypair, donorKeypair.publicKey);
+      const [updateAuthorityPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("update_authority"), donorKeypair.publicKey.toBuffer(), Buffer.from(caseId)],
+        program.programId
+      );
       const tx = new anchor.web3.Transaction();
       tx.add(
         ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }) // Increase compute budget
@@ -2191,6 +2195,7 @@ it("Test 19- Donors can donate both SOL and SPL tokens to Patient 1's case and t
             donorNftMint: nftMint,
             donorNftAta: donorNftAta.address,
             donorNftMetadata: metadataPda,
+            updateAuthorityPda: updateAuthorityPda,
             tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
             rent: anchor.web3.SYSVAR_RENT_PUBKEY,
           })
