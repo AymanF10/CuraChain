@@ -8,3 +8,4 @@ build
 test-ledger
 CACHEDIR.TAG
 .rustc_info.json
+.gitignore
