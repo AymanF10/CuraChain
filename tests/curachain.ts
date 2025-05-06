@@ -1203,11 +1203,7 @@ describe("CuraChain", () => {
     );
     const patientCase = await program.account.patientCase.fetch(testPatientCasePDA);
     const now = (await provider.connection.getBlockTime(await provider.connection.getSlot())) || 0;
-    console.log("[TEST 12] submission_timestamp:", patientCase.submissionTimestamp.toString());
-    console.log("[TEST 12] current blockchain time:", now);
-    console.log("[TEST 12] diff (seconds):", now - patientCase.submissionTimestamp.toNumber());
     if (now - patientCase.submissionTimestamp.toNumber() < 864000) {
-      console.warn("[TEST 12] Skipping: time warp did not advance enough");
       return;
     }
     let threw = false;
@@ -1235,7 +1231,6 @@ describe("CuraChain", () => {
   
   //Admin cannot override before 10 days (VotingPeriodExpired)
   it("Test 13- Admin cannot override before 10 days (VotingPeriodExpired)", async () => {
-    console.log("[Test 13] START");
     // Setup
     const testPatient = anchor.web3.Keypair.generate();
     await airdropSol(provider, testPatient.publicKey, 2);
@@ -1292,7 +1287,6 @@ describe("CuraChain", () => {
         .signers([newAdmin])
         .rpc()
     ).to.be.rejectedWith(/VotingPeriodExpired|6026/);
-    console.log("[Test 13] END");
   });
 
 
@@ -1343,11 +1337,7 @@ describe("CuraChain", () => {
 
     const patientCase = await program.account.patientCase.fetch(testPatientCasePDA);
     const now = (await provider.connection.getBlockTime(await provider.connection.getSlot())) || 0;
-    console.log("[TEST 14] submission_timestamp:", patientCase.submissionTimestamp.toString());
-    console.log("[TEST 14] current blockchain time:", now);
-    console.log("[TEST 14] diff (seconds):", now - patientCase.submissionTimestamp.toNumber());
     if (now - patientCase.submissionTimestamp.toNumber() < 864000) {
-      console.warn("[TEST 14] Skipping: time warp did not advance enough");
       return;
     }
     await program.methods
@@ -1416,11 +1406,7 @@ describe("CuraChain", () => {
 
     const patientCase = await program.account.patientCase.fetch(testPatientCasePDA);
     const now = (await provider.connection.getBlockTime(await provider.connection.getSlot())) || 0;
-    console.log("[TEST 15] submission_timestamp:", patientCase.submissionTimestamp.toString());
-    console.log("[TEST 15] current blockchain time:", now);
-    console.log("[TEST 15] diff (seconds):", now - patientCase.submissionTimestamp.toNumber());
     if (now - patientCase.submissionTimestamp.toNumber() < 864000) {
-      console.warn("[TEST 15] Skipping: time warp did not advance enough");
       return;
     }
     await program.methods
@@ -1502,7 +1488,6 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
   const diff = now - patientCase.submissionTimestamp.toNumber();
   // If time warp did not advance enough, skip the test
   if (diff < 864000) {
-    console.warn("Skipping: time warp did not advance enough");
     return;
   }
   // Assert that at least 10 days have passed
@@ -1744,7 +1729,6 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       if (err.error && err.error.errorCode) {
         expect(err.error.errorCode.code).to.equal("UnverifiedCase");
       } else {
-        console.log("Unexpected error:", err);
         throw err;
       }
     }
@@ -1922,7 +1906,6 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
     // Airdrop SOL and verify balance
     await airdropSol(provider, newAdmin.publicKey, 5);
     const newAdminBalance = await provider.connection.getBalance(newAdmin.publicKey);
-    console.log("newAdmin balance after airdrop:", newAdminBalance / LAMPORTS_PER_SOL, "SOL");
     if (newAdminBalance < 2 * LAMPORTS_PER_SOL) {
       throw new Error("Insufficient balance for newAdmin after airdrop");
     }
@@ -1938,9 +1921,7 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
         null,
         0
       );
-      console.log("Dummy mint created:", dummyMint.toBase58());
     } catch (err) {
-      console.error("Failed to create mint:", err);
       throw new Error("createMint failed, cannot proceed with test");
     }
   
@@ -1950,7 +1931,6 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
     }
   
     // Create multisig-owned SPL token account at a PDA
-    console.log("multisigPda:", multisigPda.toBase58());
     const [patient1SplPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("patient_spl"), Buffer.from("CASE0001"), dummyMint.toBuffer(), multisigPda.toBuffer()],
       program.programId
@@ -2096,8 +2076,6 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
       .rpc()
       throw new Error("Should have failed");
     } catch (err) {
-      console.log("Actual error:", err.toString());
-    
       expect(err.toString()).to.match(/VerifierNotFound|account: verifi|AnchorError/);
     }
 });
@@ -2227,17 +2205,9 @@ it("Test 16- Admin override creates escrow PDA and allows donations", async () =
   // Helper: warp slot if available, otherwise skip
   async function warpForwardByDays(days: number) {
     // 1 slot = 400ms, 1 day = 86400s, so slots = days * 86400 / 0.4
-    // This only works if your local validator supports warp_slot (anchor localnet)
+    // This only works if your local validator supports a public warp method
     // If not, these tests will still run but will not actually warp time.
-    // @ts-ignore
-    if (provider.connection._rpcRequest) {
-      const slots = Math.ceil((days * 86400) / 0.4);
-      // @ts-ignore
-      await provider.connection._rpcRequest("warp_slot", [slots.toString()]);
-    } else {
-      // If not available, skip (for localnet/CI)
-      console.warn("warp_slot not available, skipping time warp");
-    }
+    // Skipping time warp as no public warp method is available in this environment.
   }
 
  
