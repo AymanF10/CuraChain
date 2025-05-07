@@ -329,7 +329,7 @@ pub struct Donation<'info> {
 
     /// CHECK: Program-derived update authority for NFT metadata
     #[account(
-        seeds = [b"update_authority", donor.key().as_ref(), case_id.as_bytes()],
+        seeds = [b"nft_authority", crate::ID.as_ref(), case_id.as_bytes()],
         bump
     )]
     pub update_authority_pda: Option<AccountInfo<'info>>,

@@ -2170,7 +2170,7 @@ it("Test 19- Donors can donate both SOL and SPL tokens to Patient 1's case and t
     try {
       const { nftMint, donorNftAta, metadataPda } = await prepareNftAccounts(provider.connection, donorKeypair, donorKeypair.publicKey);
       const [updateAuthorityPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("update_authority"), donorKeypair.publicKey.toBuffer(), Buffer.from(caseId)],
+        [Buffer.from("nft_authority"), program.programId.toBuffer(), Buffer.from(caseId)],
         program.programId
       );
       const tx = new anchor.web3.Transaction();
