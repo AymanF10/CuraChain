@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{Mint, TokenInterface, TokenAccount};
+use anchor_spl::token_interface::{TokenInterface, TokenAccount};
 use crate::states::{Administrator, CaseCounter, PatientCase, CaseIDLookup, DonorInfo, Verifier, VerifiersList};
 use crate::states::errors::CuraChainError;
 
@@ -318,24 +318,6 @@ pub struct Donation<'info> {
 
     /// The mint for SPL token donations
     pub mint: Option<AccountInfo<'info>>,
-
-    /// NFT mint for donor (created by client, passed in)
-    #[account(mut)]
-    pub donor_nft_mint: Option<AccountInfo<'info>>,
-
-    /// CHECK: Metaplex metadata account PDA for the NFT
-    #[account(mut)]
-    pub donor_nft_metadata: Option<AccountInfo<'info>>,
-
-    /// CHECK: Program-derived update authority for NFT metadata
-    #[account(
-        seeds = [b"nft_authority", crate::ID.as_ref(), case_id.as_bytes()],
-        bump
-    )]
-    pub update_authority_pda: Option<AccountInfo<'info>>,
-
-    /// CHECK: Metaplex Token Metadata program
-    pub token_metadata_program: Option<AccountInfo<'info>>,
 
     pub rent: Sysvar<'info, Rent>,
 }

@@ -21,11 +21,10 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
-anchor-spl = { version = "0.31.1", features = ["metadata"] }
+anchor-spl = { version = "0.31.1" }
 aes-gcm = "0.10.3"
 base64 = "0.22.1"
 proc-macro2 = "1.0.95"
-mpl-token-metadata = "5.1.0"
 
 
   

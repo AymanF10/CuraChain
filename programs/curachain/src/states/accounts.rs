@@ -136,14 +136,6 @@ impl VerifiersList {
     }
 }
 
-// Struct to track NFT donations per donor
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, InitSpace)]
-pub struct DonorNftRecord {
-    pub case_id: [u8; 10],
-    pub mint: Pubkey,
-    pub total_donated: u64,
-}
-
 // CREATE A DONOR INFO PDA HERE
 #[account]
 #[derive(InitSpace)]
@@ -151,7 +143,5 @@ pub struct DonorInfo {
     pub donor_address: Pubkey,
     pub donor_bump: u8,
     pub total_donations: u64,
-    #[max_len(20)]
-    pub nft_cases: Vec<DonorNftRecord>, // Track case IDs and NFT mints for which NFT was minted
 }
    

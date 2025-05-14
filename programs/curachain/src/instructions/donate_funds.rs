@@ -1,9 +1,6 @@
 use anchor_lang::{prelude::*, system_program::{Transfer, transfer}};
-use anchor_spl::token_interface::{transfer_checked, TransferChecked, TokenInterface};
+use anchor_spl::token_interface::{transfer_checked, TransferChecked};
 use crate::states::{contexts::*, errors::*, DonationsMade, SplDonationRecord};
-use crate::states::accounts::DonorNftRecord;
-use anchor_spl::metadata::{create_metadata_accounts_v3, CreateMetadataAccountsV3, update_metadata_accounts_v2, UpdateMetadataAccountsV2};
-use mpl_token_metadata::types::DataV2;
 
 const NATIVE_MINT: &str = "11111111111111111111111111111111";
 
@@ -131,116 +128,6 @@ pub fn donate_funds_to_patient_escrow(
         case_id: case_id.clone(),
         timestamp: current_time
     });
-
-    // NFT minting logic (if all NFT accounts are provided)
-    // Only mint if donor has not already received an NFT for this case
-    if let (Some(nft_mint_info), Some(nft_ata_info), Some(metadata), Some(token_metadata_program), Some(update_authority_pda)) = (
-        ctx.accounts.donor_nft_mint.as_ref(),
-        ctx.accounts.donor_ata.as_ref(),
-        ctx.accounts.donor_nft_metadata.as_ref(),
-        ctx.accounts.token_metadata_program.as_ref(),
-        ctx.accounts.update_authority_pda.as_ref(),
-    ) {
-        msg!("Starting NFT minting for donor: {}, case_id: {}", donor.key(), case_id);
-        // Clone case_id for NFT logic to avoid move error
-        let case_id_for_nft = case_id.clone();
-        let mut case_id_bytes = [0u8; 10];
-        let case_id_bytes_src = case_id_for_nft.as_bytes();
-        case_id_bytes[..case_id_bytes_src.len().min(10)]
-            .copy_from_slice(&case_id_bytes_src[..case_id_bytes_src.len().min(10)]);
-        // Check if donor already has an NFT for this case
-        let existing_nft = donor_info.nft_cases.iter_mut().find(|rec| rec.case_id == case_id_bytes);
-        let mut new_total = amount_to_donate;
-        if let Some(nft_record) = existing_nft {
-            // Increment total_donated
-            nft_record.total_donated = nft_record.total_donated
-                .checked_add(amount_to_donate)
-                .ok_or(CuraChainError::OverflowError)?;
-            new_total = nft_record.total_donated;
-
-            // Update the NFT metadata with the new total
-            let new_uri = format!("https://arweave.net/your_image_uri?total_donated={}", new_total);
-            let new_data = DataV2 {
-                name: "CuraChain Donor NFT".to_string(),
-                symbol: "CURA".to_string(),
-                uri: new_uri,
-                seller_fee_basis_points: 0,
-                creators: None,
-                collection: None,
-                uses: None,
-            };
-            let cpi_accounts = UpdateMetadataAccountsV2 {
-                metadata: metadata.to_account_info(),
-                update_authority: update_authority_pda.to_account_info(),
-            };
-            let cpi_ctx = CpiContext::new(token_metadata_program.to_account_info(), cpi_accounts);
-            update_metadata_accounts_v2(
-                cpi_ctx,
-                Some(update_authority_pda.key()), // new_update_authority
-                Some(new_data), // data
-                None, // primary_sale_happened
-                Some(true), // is_mutable
-            )?;
-            msg!("Updated NFT metadata for case_id: {} with new total_donated: {}", case_id, new_total);
-        } else {
-            use anchor_spl::token::{MintTo, mint_to};
-            // Mint 1 NFT to the donor
-            let cpi_accounts = MintTo {
-                mint: nft_mint_info.to_account_info(),
-                to: nft_ata_info.to_account_info(),
-                authority: ctx.accounts.donor.to_account_info(),
-            };
-            let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
-            mint_to(cpi_ctx, 1)?;
-            msg!("Minted NFT to donor: {}", ctx.accounts.donor.key());
-
-            // Create the DataV2 struct
-            let new_uri = format!("https://arweave.net/your_image_uri?total_donated={}", amount_to_donate);
-            let data = DataV2 {
-                name: "CuraChain Donor NFT".to_string(),
-                symbol: "CURA".to_string(),
-                uri: new_uri,
-                seller_fee_basis_points: 0,
-                creators: None,
-                collection: None,
-                uses: None,
-            };
-
-            // Create the CPI accounts
-            let metadata_accounts = CreateMetadataAccountsV3 {
-                metadata: metadata.to_account_info(),
-                mint: nft_mint_info.to_account_info(),
-                mint_authority: ctx.accounts.donor.to_account_info(),
-                payer: ctx.accounts.donor.to_account_info(),
-                update_authority: update_authority_pda.to_account_info(),
-                system_program: ctx.accounts.system_program.to_account_info(),
-                rent: ctx.accounts.rent.to_account_info(),
-            };
-
-            // Create the CPI context
-            let metadata_ctx = CpiContext::new(
-                token_metadata_program.to_account_info(),
-                metadata_accounts,
-            );
-
-            // Call the function
-            create_metadata_accounts_v3(
-                metadata_ctx,
-                data,
-                true,  // is_mutable
-                true,  // update_authority_is_signer
-                None,  // collection_details
-            )?;
-            msg!("Created NFT metadata for case_id: {}", case_id);
-
-            // Record that donor received NFT for this case
-            donor_info.nft_cases.push(DonorNftRecord {
-                case_id: case_id_bytes,
-                mint: nft_mint_info.key(),
-                total_donated: amount_to_donate,
-            });
-        }
-    }
 
     Ok(())
 }
