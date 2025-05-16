@@ -30,7 +30,6 @@
   - [Security Features](#security-features)
   - [Compliance Considerations](#compliance-considerations)
   - [Audit Status](#audit-status)
-- [Roadmap](#-roadmap)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Support](#-support)
@@ -550,41 +549,7 @@ curachain/
 
 ---
 
-## 🗺️ Roadmap
-
-
-
-### Phase 1: Core Protocol (Current)
-- ✅ Patient case submission and verification system
-- ✅ SOL donation support
-- ✅ SPL token donation support
-- ✅ Basic fund release mechanism
-- ✅ Administrator and verifier management
-
-### Phase 2: Enhanced Features (Q3 2023)
-- 🔄 Mobile-friendly frontend interface
-- 🔄 Multi-signature governance implementation
-- 🔄 Enhanced analytics dashboard
-- 🔄 Integration with medical payment systems
-- 🔄 Improved documentation and developer tools
-
-### Phase 3: Ecosystem Expansion (Q4 2023)
-- 📅 Cross-chain bridge support for wider accessibility
-- 📅 Automated verification with trusted oracles
-- 📅 NFT-based donor recognition system
-- 📅 Global regulatory compliance framework
-- 📅 Integration with healthcare management systems
-
-### Phase 4: Enterprise Adoption (2024)
-- 📅 Hospital and clinic direct integration
-- 📅 Insurance provider partnerships
-- 📅 Corporate donation platform
-- 📅 International expansion and localization
-- 📅 Enterprise-grade security enhancements
-
 ---
-
-
 
 ## 📄 License
 
