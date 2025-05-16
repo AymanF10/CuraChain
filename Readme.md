@@ -1,16 +1,7 @@
 # 🏥 CuraChain - Decentralized Medical Crowdfunding Protocol on Solana
 
 <div align="center">
-  <img src="https://via.placeholder.com/1500x500.png?text=CuraChain:+Secure+Medical+Fundraising+on+Solana" alt="CuraChain Banner" width="100%"/>
-  <p><em>Empowering Transparent and Secure Medical Funding Through Blockchain Technology</em></p>
-  <p>
-    <a href="#-mission"><strong>Mission</strong></a> •
-    <a href="#-core-features"><strong>Features</strong></a> •
-    <a href="#-technical-architecture"><strong>Architecture</strong></a> •
-    <a href="#-getting-started"><strong>Getting Started</strong></a> •
-    <a href="#-roadmap"><strong>Roadmap</strong></a>
-  </p>
-</div>
+  
 
 ---
 
@@ -65,9 +56,7 @@ CuraChain addresses the critical gap in accessible medical funding by leveraging
 
 ### 1. **Patient Case Management**
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x400.png?text=Patient+Case+Management+Flow" alt="Patient Case Management Flow" width="80%"/>
-</div>
+
 
 - **Encrypted Medical Record Links**: Secure storage of sensitive patient data using AES-GCM encryption
 - **Unique Case ID Generation**: Automatic case numbering via `CaseCounter` PDA with collision-free ID assignment
@@ -97,9 +86,7 @@ PatientCase {
 
 ### 2. **Verification Governance**
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x400.png?text=Verification+Governance+Architecture" alt="Verification Governance Architecture" width="80%"/>
-</div>
+
 
 - **Verifier Registry**: Whitelisted medical professionals with on-chain verification authority
 - **Voting Mechanism**: Threshold-based approval system requiring 70% approval for case verification
@@ -116,9 +103,7 @@ PatientCase {
 
 ### 3. **Donation & Escrow System**
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x400.png?text=Donation+and+Escrow+Architecture" alt="Donation and Escrow Architecture" width="80%"/>
-</div>
+
 
 - **Multi-Token Support**: Accept donations in SOL and various SPL tokens
 - **Transparent Fund Tracking**: On-chain record of all donations with donor information
@@ -136,9 +121,7 @@ PatientCase {
 
 ### 4. **Administration**
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x400.png?text=Administration+System+Architecture" alt="Administration System Architecture" width="80%"/>
-</div>
+
 
 - **Verifier Management**: Add/remove authorized medical verifiers to the registry
 - **Case Oversight**: Administrative capabilities for exceptional situations and dispute resolution
@@ -157,9 +140,7 @@ PatientCase {
 
 ### System Overview
 
-<div align="center">
-  <img src="https://via.placeholder.com/900x500.png?text=CuraChain+System+Architecture" alt="CuraChain System Architecture" width="90%"/>
-</div>
+
 
 CuraChain is built on Solana using the Anchor framework, leveraging Program Derived Addresses (PDAs) to create a secure and efficient system. The architecture consists of several interconnected components:
 
@@ -170,9 +151,7 @@ CuraChain is built on Solana using the Anchor framework, leveraging Program Deri
 
 ### Account Structure
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x600.png?text=Account+Structure+and+Relationships" alt="Account Structure and Relationships" width="80%"/>
-</div>
+
 
 #### Key PDAs and Accounts
 
@@ -188,9 +167,7 @@ CuraChain is built on Solana using the Anchor framework, leveraging Program Deri
 
 ### Program Flow
 
-<div align="center">
-  <img src="https://via.placeholder.com/900x500.png?text=CuraChain+Program+Flow" alt="CuraChain Program Flow" width="90%"/>
-</div>
+
 
 #### Patient Case Lifecycle
 
@@ -223,9 +200,7 @@ CuraChain is built on Solana using the Anchor framework, leveraging Program Deri
 
 ### Security Model
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x400.png?text=CuraChain+Security+Model" alt="CuraChain Security Model" width="80%"/>
-</div>
+
 
 CuraChain implements multiple security layers to protect funds, data, and system integrity:
 
@@ -255,9 +230,6 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Administration Module
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Administration+Module+Components" alt="Administration Module Components" width="70%"/>
-</div>
 
 | Component | File | Description | Key Functions |
 |-----------|------|-------------|--------------|
@@ -273,9 +245,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Patient Case Module
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Patient+Case+Module+Components" alt="Patient Case Module Components" width="70%"/>
-</div>
+
 
 | Component | File | Description | Key Functions |
 |-----------|------|-------------|--------------|
@@ -290,9 +260,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Verification Module
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Verification+Module+Components" alt="Verification Module Components" width="70%"/>
-</div>
+
 
 | Component | File | Description | Key Functions |
 |-----------|------|-------------|--------------|
@@ -305,9 +273,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Donation Module
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Donation+Module+Components" alt="Donation Module Components" width="70%"/>
-</div>
+
 
 | Component | File | Description | Key Functions |
 |-----------|------|-------------|--------------|
@@ -320,9 +286,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Fund Release Module
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Fund+Release+Module+Components" alt="Fund Release Module Components" width="70%"/>
-</div>
+
 
 | Component | File | Description | Key Functions |
 |-----------|------|-------------|--------------|
@@ -336,9 +300,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ## 🛠️ Tech Stack
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x400.png?text=CuraChain+Technology+Stack" alt="CuraChain Technology Stack" width="80%"/>
-</div>
+
 
 ### Blockchain Infrastructure
 - **Solana Blockchain**: High-performance L1 blockchain with low transaction costs
@@ -398,9 +360,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Installation
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x300.png?text=Installation+Process+Flow" alt="Installation Process Flow" width="70%"/>
-</div>
+
 
 1. **Clone the repository:**
    ```bash
@@ -427,9 +387,6 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Local Development
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x300.png?text=Local+Development+Workflow" alt="Local Development Workflow" width="70%"/>
-</div>
 
 1. **Start a local Solana validator:**
    ```bash
@@ -449,9 +406,7 @@ CuraChain implements multiple security layers to protect funds, data, and system
 
 ### Testing
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x300.png?text=Testing+Architecture" alt="Testing Architecture" width="70%"/>
-</div>
+
 
 Run the comprehensive test suite:
 ```bash
@@ -515,9 +470,7 @@ curachain/
 
 ### Key Components
 
-<div align="center">
-  <img src="https://via.placeholder.com/800x500.png?text=Key+Component+Relationships" alt="Key Component Relationships" width="80%"/>
-</div>
+
 
 #### 1. Program Entry Point (`lib.rs`)
 - Defines program ID and instruction handlers
@@ -555,9 +508,7 @@ curachain/
 
 ### Security Features
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Security+Layer+Architecture" alt="Security Layer Architecture" width="70%"/>
-</div>
+
 
 #### Access Control System
 - **Role-Based Permissions**: Different capabilities for administrators, verifiers, patients, and donors
@@ -576,9 +527,7 @@ curachain/
 
 ### Compliance Considerations
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x350.png?text=Compliance+Framework" alt="Compliance Framework" width="70%"/>
-</div>
+
 
 #### Patient Privacy
 - Medical records stored securely off-chain
@@ -605,9 +554,7 @@ curachain/
 
 ## 🗺️ Roadmap
 
-<div align="center">
-  <img src="https://via.placeholder.com/900x400.png?text=CuraChain+Development+Roadmap" alt="CuraChain Development Roadmap" width="90%"/>
-</div>
+
 
 ### Phase 1: Core Protocol (Current)
 - ✅ Patient case submission and verification system
@@ -639,52 +586,7 @@ curachain/
 
 ---
 
-## 🤝 Contributing
 
-<div align="center">
-  <img src="https://via.placeholder.com/700x300.png?text=Contribution+Process" alt="Contribution Process" width="70%"/>
-</div>
-
-We welcome contributions to CuraChain! Please follow these steps:
-
-1. **Fork the repository**
-   ```bash
-   # Click Fork on GitHub
-   ```
-
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. **Make your changes**
-   - Follow the code style guidelines
-   - Add tests for new functionality
-   - Update documentation as needed
-
-4. **Commit your changes**
-   ```bash
-   git commit -m 'Add some feature'
-   ```
-
-5. **Push to your fork**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-6. **Open a Pull Request**
-   - Provide a clear description of the changes
-   - Link to any relevant issues
-   - Wait for review and feedback
-
-### Development Guidelines
-
-- Follow Rust and Anchor best practices
-- Maintain test coverage for all new features
-- Document all public functions and modules
-- Run the full test suite before submitting PRs
-
----
 
 ## 📄 License
 
