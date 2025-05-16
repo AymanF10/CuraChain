@@ -1,18 +1,35 @@
 [toolchain]
+anchor_version = "0.31.1"
+solana_version = "2.1.0"
 
 [features]
 seeds = false
 skip-lint = false
 
-[programs.devnet]
+[programs.localnet]
 curachain = "J6DDahS4mKkJwJ6i7dcqmhj1oRVxCd1nLPwWF6Bhjyf5"
+
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
-wallet = "/home/ayman10/.config/solana/id.json"
+cluster = "localnet"
+wallet = "./turbin3-wallet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false
+
+[test.validator]
+bind_address = "0.0.0.0"
+url = "https://api.mainnet-beta.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
+
+[[test.validator.clone]]
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"

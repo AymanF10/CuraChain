@@ -1,15 +1,16 @@
 use anchor_lang::prelude::*;
 
-use crate::states::{contexts::*, errors::*, events::*};
+use crate::states::{contexts::*, errors::*, events::*, constants::*};
 
 
 /* There Is Gonna Be A Verifier Registry List
 Where I Track All Added Verifiers To The System. 
 This Will Be A PDA initialized One Time */
 
-// Let's Initialize The Verifiers Registry and Case Counter PDA accounts here
-pub fn initialize_verifiers_list(ctx: Context<InitializeVerifiersRegistryAndCaseCounter>) -> Result<()> {
+// Let's Initialize The Verifiers Registry, Multisig and Case Counter PDA accounts here
+pub fn initialize_verifiers_list(ctx: Context<InitializeVerifiersRegistryMultisigAndCaseCounter>) -> Result<()> {
     let verifiers_registry = &mut ctx.accounts.verifiers_registry_list;
+    let multisig = &mut ctx.accounts.multisig;
 
     let case_id_counter = &mut ctx.accounts.case_counter;
     case_id_counter.current_id = 0;
@@ -19,7 +20,12 @@ pub fn initialize_verifiers_list(ctx: Context<InitializeVerifiersRegistryAndCase
     verifiers_registry.all_verifiers = Vec::new();
     verifiers_registry.verifier_registry_bump = ctx.bumps.verifiers_registry_list;
 
-    let message = format!("The Global Registry Of Verifiers Has Been Initialized");
+    multisig.multisig_admin = ctx.accounts.admin.key();
+    multisig.multisig_members = Vec::new();
+    multisig.required_threshold = MULTISIG_THRESHOLD;
+    multisig.multisig_bump = ctx.bumps.multisig;
+
+    let message = format!("The Global Registry Of Verifiers and Multisig Has Been Initialized");
     emit!(GlobalRegistryInitializeEvent {
         message
     });

@@ -1,3 +1,5 @@
+use std::u8;
+
 use anchor_lang::prelude::*;
 
 use crate::states::errors::*;
@@ -14,19 +16,27 @@ pub struct Administrator {
 }
 
 
+// CREATE THE MULTISIG ACCOUNT HERE
+#[account]
+#[derive(InitSpace)]
+pub struct Multisig {
+    pub multisig_admin: Pubkey,
+
+    #[max_len(5)]
+    pub multisig_members: Vec<Pubkey>,
+
+    pub required_threshold: u8,
+
+    pub multisig_bump: u8
+}
+
+
 // CREATE A CASE COUNTER PDA THAT WILL INCREMENT AND ASSIGN EACH CASE AN ID
 // OF THE FORMAT, CASE + (RANDOM 4 NUMBER)
 #[account]
 pub struct CaseCounter {
     pub current_id: u64,
     pub counter_bump: u8,
-}
-
-// Struct to track SPL token donations per patient
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, InitSpace)]
-pub struct SplDonationRecord {
-    pub mint: Pubkey, // SPL token mint address
-    pub amount: u64,  // Total amount donated in this token
 }
 
 // CREATE THE PATIENT ACCOUNT HERE
@@ -40,14 +50,17 @@ pub struct PatientCase {
 
     pub total_amount_needed: u64,
 
-    pub total_raised: u64,
+    pub total_sol_raised: u64,
+
+    #[max_len(20)]
+    pub spl_donations: Vec<SplDonations>,
 
     #[max_len(10)]
     pub case_id: String,
     
     pub verification_yes_votes:u8,
     // list of voted verifiers on a case
-    #[max_len(50)]
+    #[max_len(25)]
     pub voted_verifiers: Vec<Pubkey>,
 
     pub verification_no_votes: u8,
@@ -58,26 +71,21 @@ pub struct PatientCase {
 
     pub case_funded: bool,
 
+    pub submission_time: i64,
+
     #[max_len(64)]
     pub link_to_records: String,
-
-    pub submission_timestamp: i64,
-
-    //  SPL token donation tracking ---
-    /// Up to 100 different SPL tokens per patient (can be increased by raising #[max_len(100)] and INIT_SPACE)
-    #[max_len(100)]
-    pub spl_donations: Vec<SplDonationRecord>,
 }
 
-// Add INIT_SPACE constant for PatientCase (if not present)
-impl PatientCase {
-    pub const INIT_SPACE: usize = 32 + (4 + 50) + 8 + 8 + (4 + 10) + 1 + (4 + 32 * 50) + 1 + 1 + 1 + (4 + 64) + 8
-        + (4 + 100 * SplDonationRecord::INIT_SPACE); // for spl_donations
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, InitSpace, PartialEq, Copy)]
+pub struct SplDonations {
+    pub mint: Pubkey,
+
+    pub total_mint_amount: u64,
+
+    pub patient_token_vault: Pubkey,
 }
 
-impl SplDonationRecord {
-    pub const INIT_SPACE: usize = 32 + 8; // mint + amount
-}
 
 // CASE ID LOOKUP
 #[account]
@@ -124,7 +132,6 @@ impl VerifiersList {
 
     // Function to Remove Verifier From The Verifiers List
     pub fn remove_verifier_pda_from_list(&mut self, verifier_to_remove: &Pubkey) -> Result<()> {
-        
         //require!(self.all_verifiers.contains(&verifier_to_remove), MedifundError::VerifierNotFound);
 
         if let Some(index) = self.all_verifiers.iter().position(|x| x == verifier_to_remove) {
@@ -136,12 +143,44 @@ impl VerifiersList {
     }
 }
 
+
+// CREATE A TRANSFER PROPOSAL HERE
+#[account]
+#[derive(InitSpace)]
+pub struct Proposal {
+    #[max_len(10)]
+    pub case_id: String,
+
+    pub proposal_index: u64,
+
+    #[max_len(5)]
+    pub voted_multisig: Vec<MultisigApprovals>,
+
+    pub approved: bool,
+
+    pub executed: bool,
+
+    pub proposal_bump: u8,
+}
+
+
+#[derive(AnchorDeserialize, AnchorSerialize, InitSpace, Clone, Copy)]
+pub struct MultisigApprovals {
+    pub multisig_member: Pubkey,
+
+    pub approval: bool,
+}
 // CREATE A DONOR INFO PDA HERE
 #[account]
 #[derive(InitSpace)]
 pub struct DonorInfo {
     pub donor_address: Pubkey,
+
     pub donor_bump: u8,
+
     pub total_donations: u64,
+
+    #[max_len(1000)]
+    pub donated_cases: Vec<[u8;8]>,
 }
    

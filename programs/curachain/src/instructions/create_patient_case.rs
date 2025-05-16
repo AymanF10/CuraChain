@@ -1,7 +1,12 @@
+
+
 use anchor_lang::prelude::*;
-use crate::states::{contexts::*, CuraChainError, PatientCase, PatientCaseSubmission};
-use aes_gcm::{aead::{Aead, KeyInit}, Aes256Gcm, Nonce};
-use base64::{Engine as _, engine::general_purpose};
+
+use crate::states::{contexts::*, /*CuraChainError,*/ PatientCase, PatientCaseSubmission};
+
+//use aes_gcm::{aead::{Aead, KeyInit}, Aes256Gcm, Nonce};
+
+//use base64::{Engine as _, engine::general_purpose};
 
 
 
@@ -31,21 +36,19 @@ pub fn initialize_patient(
         case_id_lookup.case_lookup_bump = ctx.bumps.case_lookup;
         case_id_lookup.patient_address = ctx.accounts.patient.key();
 
-        // We Need To Encrypt The Patient's provided Link to records here
-        
-        let encrypted_medical_link = encrypt_link(&link_to_records)
-        .map_err(|_| error!(CuraChainError::EncryptionError))?;
+    
 
-    // Clone values to avoid rust ownership errors
+    // Clone values to for event emission
     let case_description_clone = case_description.clone();
     let patient_case_id_clone = patient_case_id.clone();
-    let encrypted_records_link_clone = encrypted_medical_link.clone();
+    let raw_records_link_clone = link_to_records.clone();
 
         patient_details.set_inner(
             PatientCase {
                 case_description,
                 total_amount_needed,
-                total_raised: 0,
+                total_sol_raised: 0,
+                spl_donations: vec![],
                 verification_no_votes: 0,
                 is_verified: false,
                 verification_yes_votes: 0,
@@ -53,10 +56,9 @@ pub fn initialize_patient(
                 patient_pubkey: ctx.accounts.patient.key(),
                 patient_case_bump: ctx.bumps.patient_case,
                 case_id: patient_case_id,
-                link_to_records: encrypted_medical_link,
+                link_to_records: link_to_records,
                 case_funded: false,
-                submission_timestamp: current_time,
-                spl_donations: vec![],
+                submission_time: Clock::get()?.unix_timestamp
             }
         );
 
@@ -68,7 +70,7 @@ pub fn initialize_patient(
             description: case_description_clone,
             case_id: patient_case_id_clone,
             total_needed_amount: total_amount_needed,
-            link_to_records: encrypted_records_link_clone,
+            link_to_records: raw_records_link_clone,
             is_verified: false,
             total_raised: 0,
             timestamp: current_time,
@@ -78,7 +80,7 @@ pub fn initialize_patient(
     }
 
 
-    // On-chain Encryption Algorithm;
+    /* On-chain Encryption Algorithm;
     fn encrypt_link(link: &str) -> Result<String> {
 
         const NONCE_BYTES: [u8; 12] = *b"VERIFICATION";
@@ -98,4 +100,4 @@ pub fn initialize_patient(
         .map_err(|_| error!(CuraChainError::EncryptionError))?;
 
         Ok(general_purpose::STANDARD.encode(encrypted_link))
-    }
+    }*/
