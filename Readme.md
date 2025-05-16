@@ -1,4 +1,3 @@
-```markdown
 # 🏥 CuraChain - Decentralized Medical Crowdfunding Protocol on Solana  
 *Empowering Transparent and Secure Medical Funding*
 
@@ -10,17 +9,16 @@
 ## 📜 Table of Contents
 - [Mission](#-mission)
 - [Core Features](#-core-features)
-- [Technical Deep Dive](#-technical-deep-dive)
-- [Architecture Diagram](#-architecture-diagram)
+- [Technical Architecture](#-technical-architecture)
+- [Smart Contract Modules](#-smart-contract-modules)
 - [Tech Stack](#-tech-stack)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
-  - [Local Deployment](#local-deployment)
-- [Workflow Examples](#-workflow-examples)
-- [Project Structure](#-project-structure)
-- [Testing Suite](#-testing-suite)
-- [Compliance & Security](#%EF%B8%8F-compliance--security)
+  - [Local Development](#local-development)
+  - [Testing](#testing)
+- [Program Architecture](#-program-architecture)
+- [Security & Compliance](#-security--compliance)
 - [Roadmap](#-roadmap)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -34,227 +32,229 @@ CuraChain addresses the critical gap in accessible medical funding by leveraging
 - Provide **end-to-end encrypted case submission** for patient privacy.
 - Enable **trustless verification** by accredited medical professionals.
 - Ensure **100% fund traceability** via Solana PDAs and on-chain escrow.
-- Comply with **GDPR, OFAC, and global crowdfunding regulations**.
+- Support both **SOL and SPL token** donations for maximum flexibility.
+- Comply with **global crowdfunding regulations**.
 
 ---
 
 ## 💡 Core Features
 
 ### 1. **Patient Case Management**
-- **Encrypted Document Upload**: IPFS/Arweave links encrypted with verifier public keys.
-- **Unique Case ID Generation**: Auto-incremented via `CaseCounter` PDA.
-- **Real-Time Status Tracking**: 
-  ```rust
-  msg!("Case Status - ID: {}, Status: {:?}", case.case_id, case.status);
-  ```
-- **PDA Initialization**: 
-  ```rust
-  seeds = [b"patient-case", patient_pubkey]
-  ```
+- **Encrypted Medical Record Links**: Secure storage of sensitive patient data.
+- **Unique Case ID Generation**: Automatic case numbering via `CaseCounter` PDA.
+- **Status Tracking**: Real-time monitoring of verification and funding status.
+- **SPL Token Support**: Accept donations in multiple tokens.
 
 ### 2. **Verification Governance**
-- **Whitelisting Mechanism**:
-  ```rust
-  #[account(seeds = [b"verifier", verifier_pubkey], bump)]
-  pub verifier_registry: Account<'info, VerifierRegistry>
-  ```
-- **Time-Bound Voting**: 3-day window enforced via Solana Clock.
-- **Threshold-Based Approval**:
-  - 50% minimum verifier participation.
-  - 70% approval rate for case acceptance.
+- **Verifier Registry**: Whitelisted medical professionals with on-chain verification authority.
+- **Voting Mechanism**: Threshold-based approval system (70% approval required).
+- **Admin Override**: Safeguard mechanism for edge cases.
 
-### 3. **Escrow & Donation System**
-- **Escrow PDA Creation**:
-  ```rust
-  #[account(seeds = [b"escrow", case_id], bump)]
-  pub escrow: Account<'info, EscrowPDA>
-  ```
-- **Direct SOL Donations**: Tracked via `DonationPDA` with donor-specific seeds.
-- **Fund Release Automation**: Triggered when target amount is met.
+### 3. **Donation & Escrow System**
+- **Multi-Token Support**: Accept donations in SOL and various SPL tokens.
+- **Transparent Fund Tracking**: On-chain record of all donations.
+- **Secure Fund Release**: Controlled disbursement to treatment providers.
 
-### 4. **Compliance Engine**
-- **Sanction Screening**: OFAC-compliant donor checks via `CheckCompliance` instruction.
-- **Data Sovereignty**: On-chain metadata + off-chain document storage (IPFS CID: `QmXYZ...`).
-
-### 5. **Multi-Role Dashboards**
-- **Patients**: Track donations, download audit reports.
-- **Donors**: Filter cases by medical specialty/urgency.
-- **Admins**: Real-time analytics via `GenerateReport` instruction.
+### 4. **Administration**
+- **Verifier Management**: Add/remove authorized medical verifiers.
+- **Case Oversight**: Administrative capabilities for exceptional situations.
+- **Fund Release Authorization**: Multi-signature approval for fund disbursement.
 
 ---
 
-## 🔍 Technical Deep Dive
+## 🔍 Technical Architecture
 
-### Smart Contract Modules
-| Module               | Key Functions                          | PDAs Involved               |
-|----------------------|----------------------------------------|-----------------------------|
-| `submit_case`        | Encrypt links, initialize PatientCase | `PatientCase`, `CaseCounter`|
-| `verify_case`        | Vote tallying, time checks            | `VerificationPDA`           |
-| `create_escrow`      | Fund isolation for approved cases     | `EscrowPDA`                 |
-| `donate`             | SOL transfer logic                    | `DonationPDA`               |
+CuraChain is built on Solana using the Anchor framework, leveraging Program Derived Addresses (PDAs) to create a secure and efficient system:
+
+### Key PDAs and Accounts
+
+| Account Type | Purpose | Seeds |
+|-------------|---------|-------|
+| `Administrator` | Stores admin authority | `[b"admin"]` |
+| `CaseCounter` | Tracks and assigns case IDs | `[b"case-counter"]` |
+| `PatientCase` | Stores case details and verification status | `[b"patient-case", patient_pubkey]` |
+| `CaseIDLookup` | Maps case IDs to patient accounts | `[b"case-id", case_id]` |
+| `VerifiersList` | Registry of authorized medical verifiers | `[b"verifiers-list"]` |
+| `Verifier` | Individual verifier account | `[b"verifier", verifier_pubkey]` |
+| `DonorInfo` | Tracks donor contribution history | `[b"donor", donor_pubkey]` |
 
 ### Data Flow
-1. Patient submits case → `PatientCase` PDA initialized.
-2. Verifiers review → Votes recorded in `VerificationPDA`.
-3. Case approved → `EscrowPDA` created.
-4. Donations tracked → Funds auto-release to hospital upon goal.
-5. Real-time updates via Solana transaction logs.
+1. **Case Submission**: Patient submits case with medical documentation.
+2. **Verification**: Medical professionals review and vote on case legitimacy.
+3. **Fundraising**: Approved cases receive donations in SOL and SPL tokens.
+4. **Fund Release**: Verified treatment providers receive funds for patient care.
 
 ---
 
-## 🖼️ Architecture Diagram
+## 📦 Smart Contract Modules
 
-```
-[Patient] → [Encrypted IPFS Link]
-  ↓
-[Solana Program]
-  ├─ PatientCase PDA → Case Metadata
-  ├─ EscrowPDA → Fund Pooling
-  └─ VerificationPDA → Governance
-        ↓
-[Donors] → [Transparent Contributions]
-```
+| Module | Description | Key Functions |
+|--------|-------------|--------------|
+| `initialize_admin.rs` | Admin account setup | `initialize_administrator` |
+| `verifiers_operations.rs` | Verifier management | `initialize_verifiers_list`, `add_verifier`, `remove_verifier` |
+| `create_patient_case.rs` | Case creation | `submit_cases` |
+| `verify_patient_case.rs` | Case verification | `verify_patient` |
+| `donate_funds.rs` | Donation handling | `donate` |
+| `initialize_patient_spl_account.rs` | SPL token support | `initialize_patient_spl_account` |
+| `release_funds.rs` | Fund disbursement | `release_funds` |
+| `admin_override_case.rs` | Admin controls | `admin_override_case` |
+| `close_rejected_case.rs` | Case cleanup | `close_rejected_case` |
 
 ---
 
 ## 🛠️ Tech Stack
 
 **Blockchain**  
-- Solana Mainnet (Anchor v0.28.0)  
-- Program Derived Addresses (PDAs)
+- Solana Blockchain  
+- Anchor Framework v0.31.1  
+- Program Derived Addresses (PDAs)  
+- SPL Token Standard
 
-**Frontend** *(Future Phase)*  
-- React + Next.js  
-- Solana Wallet Adapter
-
-**Storage**  
-- IPFS (Document Storage)  
-- Arweave (Immutable Backups)
+**Development**  
+- Rust (for on-chain program)  
+- TypeScript (for testing and client integration)  
+- Mocha (for test framework)
 
 **Security**  
-- AES-256 Encryption  
-- Anchor Security Constraints
+- AES-GCM Encryption (for sensitive data)  
+- Base64 Encoding
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Rust 1.65+
-- Solana CLI 1.14.18+
-- Node.js 18.x
+- Rust 1.70+ and Cargo
+- Solana CLI 1.16.0+
+- Node.js 18+ and Yarn
+- Anchor CLI 0.31.1+
 
 ### Installation
+
+1. Clone the repository:
 ```bash
-git clone https://github.com/curachain/core.git
-cd core/programs/curachain
+git clone https://github.com/yourusername/curachain.git
+cd curachain
+```
+
+2. Install JavaScript dependencies:
+```bash
+yarn install
+```
+
+3. Build the Solana program:
+```bash
 anchor build
 ```
 
-### Local Deployment
-1. Start Validator:
-   ```bash
-   solana-test-validator --reset
-   ```
-2. Deploy Program:
-   ```bash
-   anchor deploy --provider.cluster localnet
-   ```
-3. Run Tests:
-   ```bash
-   anchor test --skip-build
-   ```
+### Local Development
+
+1. Start a local Solana validator:
+```bash
+solana-test-validator
+```
+
+2. Deploy the program to localnet:
+```bash
+anchor deploy
+```
+
+3. Update the program ID in `Anchor.toml` and `lib.rs` if needed.
+
+### Testing
+
+Run the test suite:
+```bash
+anchor test
+```
 
 ---
 
-## 📂 Project Structure
+## 📂 Program Architecture
 
 ```
 curachain/
 ├── programs/
 │   └── curachain/
 │       ├── src/
-│       │   ├── instructions/      # Core logic modules
-│       │   │   ├── submit_case.rs
-│       │   │   ├── verify_case.rs
-│       │   │   └── donate.rs
-│       │   ├── state/             # PDA structs
-│       │   │   ├── patient_case.rs
-│       │   │   └── escrow_pda.rs
-│       │   ├── constants.rs       # Seeds & thresholds
-│       │   └── lib.rs             # Program entry
-├── tests/                         # TypeScript integration tests
-├── target/idl/                   # Anchor IDL
-└── apps/                         # Future UI
+│       │   ├── instructions/       # Core logic modules
+│       │   │   ├── create_patient_case.rs
+│       │   │   ├── verify_patient_case.rs
+│       │   │   ├── donate_funds.rs
+│       │   │   └── ...
+│       │   ├── states/            # Account definitions & contexts
+│       │   │   ├── accounts.rs
+│       │   │   ├── contexts.rs
+│       │   │   ├── errors.rs
+│       │   │   └── ...
+│       │   └── lib.rs             # Program entry point
+├── tests/                         # TypeScript tests
+│   └── curachain.ts
+├── app/                          # Frontend (future)
+└── Anchor.toml                   # Project configuration
 ```
 
 ---
 
-## 🔬 Testing Suite
+## 🔒 Security & Compliance
 
-**Key Test Cases** *(See `curachain.ts`)*:
-1. `initialize_counter()`: Validate global counter PDA.
-2. `submit_patient_case("ipfs://QmXYZ")`: Test encrypted link storage.
-3. `whitelist_verifier()`: Add medical board to registry.
-4. `finalize_verification()`: Timeout and threshold checks.
+**Security Features**  
+- Encrypted medical record links  
+- PDA-based access control  
+- Threshold-based verification  
+- Multi-signature fund release
 
-Run all tests:
-```bash
-anchor test --skip-build
-```
-
----
-
-## ⚖️ Compliance & Security
-
-**Audits**  
-- Pending third-party review (Contact: audits@curachain.org)
-
-**Encryption**  
-- Patient documents: AES-256 via off-chain key management.
-- On-chain links: Base64 encoded IPFS CIDs.
-
-**Regulatory Adherence**  
-- GDPR: Right-to-be-forgotten via PDA closures.
-- OFAC: Donor wallet screening in `CheckCompliance`.
+**Compliance Considerations**  
+- Patient data privacy protection  
+- Transparent fund tracking  
+- Verifiable donation history  
+- Administrative oversight
 
 ---
 
 ## 🗺️ Roadmap
 
-**Q4 2025**  
-- NFT Donor Badges (ERC-1155 Compatibility)
-- Cross-Chain Escrows (EVM ↔ Solana Bridges)
+**Phase 1: Core Protocol (Current)**  
+- Patient case submission and verification  
+- SOL and SPL token donation support  
+- Basic fund release mechanism
 
-**Q1 2026**  
-- AI-Pledged Case Prioritization
-- Gasless Transactions via Compression
+**Phase 2: Enhanced Features**  
+- Mobile-friendly frontend interface  
+- Multi-signature governance  
+- Enhanced analytics dashboard  
+- Integration with medical payment systems
+
+**Phase 3: Ecosystem Expansion**  
+- Cross-chain bridge support  
+- Automated verification with trusted oracles  
+- NFT-based donor recognition  
+- Global regulatory compliance framework
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork & clone the repo.
-2. Create feature branch:
-   ```bash
-   git checkout -b feat/your-feature
-   ```
-3. Write tests for new instructions.
-4. Submit PR with `[RFC]` tag for review.
+We welcome contributions to CuraChain! Please follow these steps:
 
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature-name`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature-name`
+5. Open a Pull Request
 
+Please ensure your code follows our style guidelines and includes appropriate tests.
 
 ---
 
 ## 📄 License  
-MIT License - See [LICENSE](LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🆘 Support  
 **Team**: Ernest & Ayman (Co-Founders)  
 **Email**: aymanf.gis@protonmail.com 
-```
 
 ---
 
