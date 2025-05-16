@@ -1,7 +1,5 @@
 # 🏥 CuraChain - Decentralized Medical Crowdfunding Protocol on Solana
 
-<div align="center">
-  
 
 ---
 
