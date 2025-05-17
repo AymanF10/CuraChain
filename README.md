@@ -216,11 +216,6 @@ flowchart TD
     E --> H[Case ID System Ready]
     G --> I[Platform Ready for Operations]
     H --> I
-    
-    style A fill:#f9d5e5,stroke:#333,stroke-width:2px
-    style B fill:#eeeeee,stroke:#333,stroke-width:2px
-    style C fill:#eeeeee,stroke:#333,stroke-width:2px
-    style I fill:#d5f9e5,stroke:#333,stroke-width:2px
 ```
 
 ### 2. Patient Case Submission and Verification Flow
@@ -257,12 +252,6 @@ flowchart TD
     R -->|Reject| O
     
     O --> S[Case Can Be Closed]
-    
-    style A fill:#f9d5e5,stroke:#333,stroke-width:2px
-    style K fill:#d5f9e5,stroke:#333,stroke-width:2px
-    style N fill:#d5f9e5,stroke:#333,stroke-width:2px
-    style O fill:#f9e5d5,stroke:#333,stroke-width:2px
-    style R fill:#f5f9d5,stroke:#333,stroke-width:2px
 ```
 
 ### 3. Donation Process and NFT Receipt System Flow
@@ -304,12 +293,6 @@ flowchart TD
     R --> S
     
     S --> T[Donation Complete]
-    
-    style A fill:#f9d5e5,stroke:#333,stroke-width:2px
-    style G fill:#d5f9e5,stroke:#333,stroke-width:2px
-    style N fill:#d5e5f9,stroke:#333,stroke-width:2px
-    style O fill:#d5e5f9,stroke:#333,stroke-width:2px
-    style T fill:#d5f9e5,stroke:#333,stroke-width:2px
 ```
 
 ### 4. Fund Release and Multisig Approval Flow
@@ -344,11 +327,6 @@ flowchart TD
     
     P --> Q[Emit Fund Release Event]
     Q --> R[Mark Proposal as Executed]
-    
-    style A fill:#f9d5e5,stroke:#333,stroke-width:2px
-    style K fill:#d5f9e5,stroke:#333,stroke-width:2px
-    style M fill:#d5e5f9,stroke:#333,stroke-width:2px
-    style R fill:#d5f9e5,stroke:#333,stroke-width:2px
 ```
 
 ### 5. Admin Override Process After 10-Day Period
@@ -376,11 +354,6 @@ flowchart TD
     
     K --> N[Case Ready for Donations]
     L --> N
-    
-    style A fill:#f9d5e5,stroke:#333,stroke-width:2px
-    style H fill:#f5f9d5,stroke:#333,stroke-width:2px
-    style I fill:#d5f9e5,stroke:#333,stroke-width:2px
-    style N fill:#d5f9e5,stroke:#333,stroke-width:2px
 ```
 
 ### 6. Complete System Interaction Flow
@@ -424,12 +397,6 @@ flowchart TD
     Q --> S[Case Completed]
     
     B --> C
-    
-    style A fill:#f9d5e5,stroke:#333,stroke-width:2px
-    style G fill:#d5f9e5,stroke:#333,stroke-width:2px
-    style J fill:#f9e5d5,stroke:#333,stroke-width:2px
-    style Q fill:#d5e5f9,stroke:#333,stroke-width:2px
-    style S fill:#d5f9e5,stroke:#333,stroke-width:2px
 ```
 
 ### Detailed Process Flow Description:
