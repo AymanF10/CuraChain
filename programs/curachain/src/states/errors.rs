@@ -131,4 +131,7 @@ pub enum CuraChainError{
 
     #[msg("Case Has Been Fully Funded: No Need For Further Donations")]
     CaseFullyFunded,
+
+    #[msg("Voting period has expired. The case requires admin intervention now.")]
+    VotingPeriodExpired,
 }

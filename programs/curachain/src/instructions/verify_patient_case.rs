@@ -1,10 +1,8 @@
-
-
 use anchor_lang::{prelude::*, solana_program::{self, rent::Rent/*, system_program system_instruction*/}};
 
 use solana_program::pubkey::Pubkey;
 
-use crate::states::{constants::SCALE, contexts::*, errors::*, PatientCaseVerificationStatus};
+use crate::states::{constants::{SCALE, ALLOWED_VERIFICATION_TIME}, contexts::*, errors::*, PatientCaseVerificationStatus};
 
 
 // Let's Write The Actual Verification Instruction
@@ -16,6 +14,13 @@ pub fn approve_patient_case(ctx: Context<VerifyPatientCase>, case_id: String, is
     let patient_details = &mut ctx.accounts.patient_case;
     let verifier_to_vote = ctx.accounts.verifier.key();
     let total_verifiers = ctx.accounts.verifiers_list.all_verifiers.len();
+
+    // Check if the voting period has expired (10 days after submission)
+    let now = Clock::get()?.unix_timestamp;
+    require!(
+        now < patient_details.submission_time + ALLOWED_VERIFICATION_TIME as i64,
+        CuraChainError::VotingPeriodExpired
+    );
 
     // first check that patient case has not been already verified
     require!(patient_details.is_verified == false, CuraChainError::CaseAlreadyVerified);

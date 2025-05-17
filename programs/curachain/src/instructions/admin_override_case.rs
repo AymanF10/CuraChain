@@ -10,42 +10,52 @@ use crate::states::{contexts::*, errors::*, constants::*, events::*};
 pub fn admin_override_case(ctx: Context<AdminOverrideCase>, case_id: String, is_verified: bool) -> Result<()> {
     let patient_case = &mut ctx.accounts.patient_case;
 
-    // Only allow after 10 days
+    // Only allow after 10 days from submission time
     let now = Clock::get()?.unix_timestamp;
-    require!(now >= patient_case.submission_time + ALLOWED_VERIFICATION_TIME as i64 , CuraChainError::VerifiersVerificationActive);
+    require!(
+        now >= patient_case.submission_time + ALLOWED_VERIFICATION_TIME as i64, 
+        CuraChainError::VerifiersVerificationActive
+    );
 
-    // Only if not already verified
+    // Case shouldn't already be verified
     require!(!patient_case.is_verified, CuraChainError::CaseAlreadyVerified);
 
+    // Set the verification status based on admin decision
     patient_case.is_verified = is_verified;
 
-    msg!("[ADMIN OVERRIDE] case_id: {}", case_id);
-    msg!("[ADMIN OVERRIDE] patient_case.key(): {}", ctx.accounts.patient_case.key());
+    msg!("[ADMIN OVERRIDE] Case ID: {}", case_id);
+    msg!("[ADMIN OVERRIDE] Patient case: {}", ctx.accounts.patient_case.key());
+    msg!("[ADMIN OVERRIDE] Verification status set to: {}", is_verified);
 
+    // If the admin approves the case, create an escrow account
     if is_verified {
         create_escrow_pda(ctx)?;
     }
 
-   // CATCHING THIS EVENT ON-CHAIN ANYTIME THIS INSTRUCTION OCCURS
-    let message = format!("Patient Case With ID, {} has successfully been verified!!!", case_id);
+    // Emit event for tracking admin override actions
+    let message = format!(
+        "Admin has overridden verification for case {}: {}",
+        case_id,
+        if is_verified { "APPROVED" } else { "REJECTED" }
+    );
+    
     let current_time = Clock::get()?.unix_timestamp;
     emit!(
         PatientCaseVerificationStatus{
             message,
             case_id,
-            is_verified: true,
+            is_verified,
             timestamp: current_time,
         }
     );
+    
     Ok(())
 }
 
 
 fn create_escrow_pda(ctx: Context<AdminOverrideCase>) -> Result<()> {
-
     
     let patient_case_key = ctx.accounts.patient_case.key();
-
     let case_id_lookup = &mut ctx.accounts.case_lookup;
 
     // Get Escrow PDA address using find_program_address
@@ -59,14 +69,14 @@ fn create_escrow_pda(ctx: Context<AdminOverrideCase>) -> Result<()> {
         *ctx.accounts.patient_escrow.key == patient_escrow_pda, CuraChainError::InvalidEscrowPDA
     );
     
-    // Let's store the patient_escrow pda bump into a field in the case_lookup 
+    // Store the patient_escrow PDA bump in the case_lookup 
     case_id_lookup.patient_escrow_bump = _patient_escrow_bump;
 
     let rent = Rent::get()?;
     let space = 0;
     let lamports = rent.minimum_balance(space);
 
-      //Create the Escrow PDA Account, setting program_id as owner
+    // Create the Escrow PDA Account, setting system_program as owner
     let create_escrow_ix = solana_program::system_instruction::create_account(
         &ctx.accounts.admin.key(),
         &patient_escrow_pda,
@@ -96,10 +106,6 @@ fn create_escrow_pda(ctx: Context<AdminOverrideCase>) -> Result<()> {
         signer_seeds
     )?;
 
-    // We Need To Ensure The Escrow Patient PDA account was created successfully
-    // There will be an error from the create_account instruction if creation failed somehow.
-   
+    // Escrow PDA creation will throw an error if it fails
     Ok(())
-
-
 }
