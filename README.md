@@ -478,7 +478,7 @@ anchor deploy --provider.cluster devnet
 
 # Program ID on Devnet:
    Program Id: C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK
-   Link: https://explorer.solana.com/address/C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK?cluster=devnet
+   Link: [Curachain Program on Solana Explorer](https://explorer.solana.com/address/C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK?cluster=devnet)
 
 ```
 
