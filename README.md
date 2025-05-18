@@ -475,6 +475,11 @@ anchor run add-verifier -- --keypair <VERIFIER_KEYPAIR_PATH>
 
 # Deploy to devnet
 anchor deploy --provider.cluster devnet
+
+# Program ID on Devnet:
+   Program Id: C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK
+   Link: https://explorer.solana.com/address/C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK?cluster=devnet
+
 ```
 
 ## License
