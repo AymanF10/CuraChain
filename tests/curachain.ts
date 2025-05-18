@@ -1101,7 +1101,7 @@ describe("CuraChain", () => {
 
  
   //A Verifier Cannot Vote On An Already Verified Case
-  it("Test 11- A Verifier Cannot Vote On An Already Verified Case  ==> Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
+  it("Test 11- A Verifier Cannot Vote On An Already Verified Case => Verifier6 Cannot Vote On Case 1, Which is Already Verified", async () => {
     //Verifier 6 Did Not Vote On Case 1 prior to it being verified.
     // Now, He attempts to Vote on Case 1, but will get a transaction revert.
     const [verifier6PDA, verifier6Bump] = PublicKey.findProgramAddressSync(
