@@ -6,7 +6,7 @@ solana_version = "2.1.0"
 seeds = false
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 curachain = "J6DDahS4mKkJwJ6i7dcqmhj1oRVxCd1nLPwWF6Bhjyf5"
 
 
@@ -14,7 +14,7 @@ curachain = "J6DDahS4mKkJwJ6i7dcqmhj1oRVxCd1nLPwWF6Bhjyf5"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/home/ayman10/.config/solana/id.json"
 
 [scripts]

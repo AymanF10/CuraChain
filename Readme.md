@@ -382,6 +382,10 @@ CuraChain implements multiple security layers to protect funds, data, and system
    solana address -k target/deploy/curachain-keypair.json
    ```
 
+5. **Program ID on Devnet:**
+   Program Id: C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK
+   Link: https://explorer.solana.com/address/C6MLrHQCiBiTUXHgG5S1MJjz32mBpapSjoWHRG62sCVK?cluster=devnet
+
 ### Local Development
 
 
